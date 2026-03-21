@@ -29,6 +29,9 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+{{- with .Values.node.podSecurityContext }}
+{{ toYaml . | indent 8 }}
+{{- end }}
 {{- with .Values.node.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
