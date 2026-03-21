@@ -45,6 +45,11 @@ driver:
 
 feature:
   enableFSGroupPolicy: true
+  # fsGroupPolicy controls how the kubelet applies fsGroup to volumes from this
+  # CSI driver. Allowed values: File (default, always apply), None (skip entirely),
+  # ReadWriteOnceWithFSType (only RWO with fsType set).
+  # Set to "None" for NFS to avoid slow recursive chown on every pod mount.
+  fsGroupPolicy: File
   enableInlineVolume: false
   propagateHostMountOptions: false
 

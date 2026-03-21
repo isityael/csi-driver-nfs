@@ -11,5 +11,5 @@ spec:
     - Ephemeral
   {{- end}}
   {{- if .Values.feature.enableFSGroupPolicy}}
-  fsGroupPolicy: File
+  fsGroupPolicy: {{ .Values.feature.fsGroupPolicy | default "File" }}
   {{- end}}
