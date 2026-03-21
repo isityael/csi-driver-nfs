@@ -104,7 +104,9 @@ spec:
             - "-leader-election"
             - "--leader-election-namespace={{ .Release.Namespace }}"
             - '-handle-volume-inuse-error=false'
-            - '-feature-gates=VolumeAttributesClass=false'
+{{- if .Values.controller.resizer.featureGates }}
+            - "-feature-gates={{- $gates := list -}}{{- range $k, $v := .Values.controller.resizer.featureGates -}}{{- $gates = append $gates (printf "%s=%s" $k (toString $v)) -}}{{- end -}}{{ join "," $gates }}"
+{{- end }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock

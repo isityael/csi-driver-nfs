@@ -74,6 +74,9 @@ controller:
     # Feature gates passed to csi-provisioner. Set to empty map to disable all gates.
     featureGates:
       VolumeAttributesClass: "false"
+  resizer:
+    featureGates:
+      VolumeAttributesClass: "false"
   useTarCommandInSnapshot: false
   enableSnapshotCompression: true
   livenessProbe:
