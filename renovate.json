@@ -4,6 +4,9 @@
     "config:best-practices",
     ":preserveSemverRanges"
   ],
+  "ignorePaths": [
+    "charts/*/*.tgz"
+  ],
   "enabledManagers": [
     "gomod",
     "dockerfile",
