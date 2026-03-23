@@ -6,7 +6,7 @@ when:
 
 steps:
   - name: helm-lint
-    image: dhi.io/helm:3.18.3-debian13-dev@sha256:bc1c1f5fec9d1cdbbd6b6e99a1510ec3e419e18c9c269a4e5c3093dcbbd5ad2c
+    image: dhi.io/helm:3.20.1-debian13-dev
     commands:
       - helm lint charts/latest/csi-driver-nfs
       - echo "Helm lint passed."
