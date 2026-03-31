@@ -1,8 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
+    "github>sm-moshi/infra//.github/renovate/base.json",
     "config:best-practices",
     ":preserveSemverRanges"
+  ],
+  "abandonmentThreshold": "2 years",
+  "pinDigests": false,
+  "ignorePaths": [
+    "charts/*/*.tgz"
   ],
   "enabledManagers": [
     "gomod",

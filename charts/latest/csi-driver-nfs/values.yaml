@@ -45,6 +45,11 @@ driver:
 
 feature:
   enableFSGroupPolicy: true
+  # fsGroupPolicy controls how the kubelet applies fsGroup to volumes from this
+  # CSI driver. Allowed values: File (default, always apply), None (skip entirely),
+  # ReadWriteOnceWithFSType (only RWO with fsType set).
+  # Set to "None" for NFS to avoid slow recursive chown on every pod mount.
+  fsGroupPolicy: File
   enableInlineVolume: false
   propagateHostMountOptions: false
 
@@ -57,6 +62,21 @@ controller:
   runOnMaster: false
   runOnControlPlane: false
   enableSnapshotter: true
+  # Pod-level security context for the controller Deployment.
+  # Set fsGroup when using non-root sidecar images (e.g. Bitnami, Chainguard).
+  podSecurityContext: {}
+  #  runAsNonRoot: true
+  #  runAsUser: 65532
+  #  runAsGroup: 65532
+  #  fsGroup: 65532
+  #  fsGroupChangePolicy: OnRootMismatch
+  provisioner:
+    # Feature gates passed to csi-provisioner. Set to empty map to disable all gates.
+    featureGates:
+      VolumeAttributesClass: "false"
+  resizer:
+    featureGates:
+      VolumeAttributesClass: "false"
   useTarCommandInSnapshot: false
   enableSnapshotCompression: true
   livenessProbe:
@@ -124,6 +144,8 @@ nodeDriverRegistrar:
 
 node:
   name: csi-nfs-node
+  # Pod-level security context for the node DaemonSet.
+  podSecurityContext: {}
   dnsPolicy: ClusterFirstWithHostNet  # available values: Default, ClusterFirstWithHostNet, ClusterFirst
   maxUnavailable: 1
   logLevel: 5

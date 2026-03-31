@@ -1,0 +1,29 @@
+# Multi-stage release build for sm-moshi/nfsplugin.
+# Cross-compilation: builder runs on BUILDPLATFORM (native speed),
+# Go cross-compiles to TARGETARCH. Only the runtime stage uses QEMU.
+ARG GO_VERSION=1.25.7@sha256:5a79b94c34c299ac0361fbb7c7fca6dc552e166b42341050323fa3ab137d7be9
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS builder
+ARG TARGETOS=linux
+ARG TARGETARCH
+ARG IMAGE_VERSION=dev
+ARG GIT_COMMIT=unknown
+
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY vendor/ vendor/
+COPY cmd/ cmd/
+COPY pkg/ pkg/
+
+RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a \
+    -ldflags "-s -w -extldflags '-static' \
+    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.driverVersion=${IMAGE_VERSION} \
+    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.gitCommit=${GIT_COMMIT} \
+    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
+    -mod vendor -o /nfsplugin ./cmd/nfsplugin
+
+FROM registry.k8s.io/build-image/debian-base:bookworm-v1.0.7@sha256:368abceecc1308e0913a6fd5ab89a513ee4268becefc2a82dbe616462b29a46b
+COPY --from=builder /nfsplugin /nfsplugin
+RUN apt update && apt upgrade -y && apt-mark unhold libcap2 && clean-install ca-certificates mount nfs-common netbase
+ENTRYPOINT ["/nfsplugin"]

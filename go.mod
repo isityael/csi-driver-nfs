@@ -3,7 +3,7 @@ module github.com/kubernetes-csi/csi-driver-nfs
 go 1.25.0
 
 require (
-	github.com/container-storage-interface/spec v1.11.0
+	github.com/container-storage-interface/spec v1.12.0
 	github.com/kubernetes-csi/csi-lib-utils v0.9.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
@@ -19,7 +19,7 @@ require (
 	k8s.io/kubernetes v1.32.10
 	k8s.io/mount-utils v0.32.0
 	k8s.io/pod-security-admission v0.0.0
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	sigs.k8s.io/yaml v1.6.0
 )
 

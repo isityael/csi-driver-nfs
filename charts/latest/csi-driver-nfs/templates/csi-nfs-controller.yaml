@@ -54,6 +54,9 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+{{- with .Values.controller.podSecurityContext }}
+{{ toYaml . | indent 8 }}
+{{- end }}
 {{- with .Values.controller.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
@@ -71,7 +74,9 @@ spec:
             - "--leader-election"
             - "--leader-election-namespace={{ .Release.Namespace }}"
             - "--extra-create-metadata=true"
-            - "--feature-gates=VolumeAttributesClass=false"
+{{- if .Values.controller.provisioner.featureGates }}
+            - "--feature-gates={{- $gates := list -}}{{- range $k, $v := .Values.controller.provisioner.featureGates -}}{{- $gates = append $gates (printf "%s=%s" $k (toString $v)) -}}{{- end -}}{{ join "," $gates }}"
+{{- end }}
             - "--timeout=1200s"
             - "--retry-interval-max=30m"
           env:
@@ -99,7 +104,9 @@ spec:
             - "-leader-election"
             - "--leader-election-namespace={{ .Release.Namespace }}"
             - '-handle-volume-inuse-error=false'
-            - '-feature-gates=VolumeAttributesClass=false'
+{{- if .Values.controller.resizer.featureGates }}
+            - "-feature-gates={{- $gates := list -}}{{- range $k, $v := .Values.controller.resizer.featureGates -}}{{- $gates = append $gates (printf "%s=%s" $k (toString $v)) -}}{{- end -}}{{ join "," $gates }}"
+{{- end }}
           env:
             - name: ADDRESS
               value: /csi/csi.sock
