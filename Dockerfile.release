@@ -15,11 +15,12 @@ COPY vendor/ vendor/
 COPY cmd/ cmd/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a \
+RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a \
     -ldflags "-s -w -extldflags '-static' \
     -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.driverVersion=${IMAGE_VERSION} \
     -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.gitCommit=${GIT_COMMIT} \
-    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.buildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
     -mod vendor -o /nfsplugin ./cmd/nfsplugin
 
 FROM registry.k8s.io/build-image/debian-base:bookworm-v1.0.7

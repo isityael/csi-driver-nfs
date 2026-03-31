@@ -20,9 +20,9 @@ steps:
         - "${CI_COMMIT_TAG}"
         - latest
       build_args:
-        - "IMAGE_VERSION=${CI_COMMIT_TAG}"
-        - "GIT_COMMIT=${CI_COMMIT_SHA}"
-        - "GO_VERSION=1.25.7"
+        - IMAGE_VERSION=${CI_COMMIT_TAG}
+        - GIT_COMMIT=${CI_COMMIT_SHA}
+        - GO_VERSION=1.25.7
       logins:
         - registry: ghcr.io
           username:
