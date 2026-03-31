@@ -1,0 +1,67 @@
+# CSI Driver NFS — Build and push to GHCR
+# Triggers on tag push (v*) or manual run
+when:
+  - event: tag
+    ref: refs/tags/v*
+  - event: manual
+
+steps:
+  - name: build-and-push
+    image: woodpeckerci/plugin-docker-buildx:6.0.4
+    privileged: true
+    settings:
+      registry: ghcr.io
+      repo: ghcr.io/sm-moshi/nfsplugin
+      dockerfile: Dockerfile.release
+      platforms:
+        - linux/amd64
+      tags:
+        - "${CI_COMMIT_TAG##v}"
+        - "${CI_COMMIT_TAG}"
+        - latest
+      build_args:
+        - "IMAGE_VERSION=${CI_COMMIT_TAG}"
+        - "GIT_COMMIT=${CI_COMMIT_SHA}"
+        - "GO_VERSION=1.25.7"
+      logins:
+        - registry: ghcr.io
+          username:
+            from_secret: ghcr_username
+          password:
+            from_secret: ghcr_token
+      provenance: mode=max
+      buildkit_driveropt: network=host
+      cache_from: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache"
+      cache_to: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache,mode=max,ignore-error=true"
+
+  - name: trivy-scan
+    failure: ignore
+    image: dhi.io/trivy:0.69.3-alpine3.23-dev
+    environment:
+      IMAGE_REF: "ghcr.io/sm-moshi/nfsplugin:${CI_COMMIT_TAG}"
+      TRIVY_USERNAME:
+        from_secret: ghcr_username
+      TRIVY_PASSWORD:
+        from_secret: ghcr_token
+    commands:
+      - trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed $${IMAGE_REF}
+      - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
+
+  - name: cosign-sign
+    image: dhi.io/cosign:3.0.5-alpine3.23-dev
+    environment:
+      IMAGE_REF: "ghcr.io/sm-moshi/nfsplugin:${CI_COMMIT_TAG}"
+      COSIGN_EXPERIMENTAL: "1"
+      COSIGN_KEY:
+        from_secret: cosign_key
+      COSIGN_PASSWORD:
+        from_secret: cosign_password
+      REGISTRY_USERNAME:
+        from_secret: ghcr_username
+      REGISTRY_PASSWORD:
+        from_secret: ghcr_token
+    commands:
+      - echo "$COSIGN_KEY" > /tmp/cosign.key
+      - cosign login ghcr.io -u "$REGISTRY_USERNAME" -p "$REGISTRY_PASSWORD"
+      - cosign sign --key /tmp/cosign.key --yes --registry-referrers-mode=oci-1-1 $${IMAGE_REF}
+      - rm -f /tmp/cosign.key
