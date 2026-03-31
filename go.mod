@@ -19,7 +19,7 @@ require (
 	k8s.io/kubernetes v1.32.10
 	k8s.io/mount-utils v0.32.0
 	k8s.io/pod-security-admission v0.0.0
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20260319190234-28399d86e0b5
 	sigs.k8s.io/yaml v1.6.0
 )
 
