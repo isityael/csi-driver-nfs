@@ -31,7 +31,7 @@ steps:
             from_secret: github_token
       provenance: mode=max
       buildkit_driveropt: network=host
-      cache_from: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache"
+      cache_from: "type=registry\\,ref=ghcr.io/sm-moshi/nfsplugin:buildcache"
       cache_to: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache,mode=max,ignore-error=true"
 
   - name: trivy-scan
