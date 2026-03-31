@@ -26,9 +26,9 @@ steps:
       logins:
         - registry: ghcr.io
           username:
-            from_secret: ghcr_username
+            from_secret: github_username
           password:
-            from_secret: ghcr_token
+            from_secret: github_token
       provenance: mode=max
       buildkit_driveropt: network=host
       cache_from: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache"
@@ -40,9 +40,9 @@ steps:
     environment:
       IMAGE_REF: "ghcr.io/sm-moshi/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
-        from_secret: ghcr_username
+        from_secret: github_username
       TRIVY_PASSWORD:
-        from_secret: ghcr_token
+        from_secret: github_token
     commands:
       - trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed $${IMAGE_REF}
       - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
@@ -57,9 +57,9 @@ steps:
       COSIGN_PASSWORD:
         from_secret: cosign_password
       REGISTRY_USERNAME:
-        from_secret: ghcr_username
+        from_secret: github_username
       REGISTRY_PASSWORD:
-        from_secret: ghcr_token
+        from_secret: github_token
     commands:
       - echo "$COSIGN_KEY" > /tmp/cosign.key
       - cosign login ghcr.io -u "$REGISTRY_USERNAME" -p "$REGISTRY_PASSWORD"
