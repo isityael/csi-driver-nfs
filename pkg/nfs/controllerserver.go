@@ -187,7 +187,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	if mountPermissions > 0 {
 		// Reset directory permissions because of umask problems
-		if err = os.Chmod(internalVolumePath, os.FileMode(mountPermissions)); err != nil {
+		if err := chmodIfPermissionMismatch(internalVolumePath, uint32(mountPermissions)); err != nil {
 			klog.Warningf("failed to chmod subdirectory: %v", err)
 		}
 	}
@@ -707,6 +707,13 @@ func newNFSVolume(name string, size int64, params map[string]string, defaultOnDe
 
 	if server == "" {
 		return nil, fmt.Errorf("%v is a required parameter", paramServer)
+	}
+
+	if err := validatePath(baseDir); err != nil {
+		return nil, fmt.Errorf("invalid share %q: %v", baseDir, err)
+	}
+	if err := validatePath(subDir); err != nil {
+		return nil, fmt.Errorf("invalid subDir %q: %v", subDir, err)
 	}
 
 	vol := &nfsVolume{
