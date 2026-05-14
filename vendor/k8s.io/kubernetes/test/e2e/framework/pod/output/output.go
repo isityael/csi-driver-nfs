@@ -176,7 +176,7 @@ func MatchMultipleContainerOutputs(
 	createdPod := podClient.Create(ctx, pod)
 	defer func() {
 		ginkgo.By("delete the pod")
-		podClient.DeleteSync(ctx, createdPod.Name, metav1.DeleteOptions{}, e2epod.DefaultPodDeletionTimeout)
+		podClient.DeleteSync(ctx, createdPod.Name, metav1.DeleteOptions{}, f.Timeouts.PodDelete)
 	}()
 
 	// Wait for client pod to complete.
@@ -273,7 +273,6 @@ func TestContainerOutputsMatcher(ctx context.Context, f *framework.Framework,
 
 	expectedNameOutputs := make(map[string][]string, len(expectedOutputs))
 	for containerIndex, expectedOutput := range expectedOutputs {
-		expectedOutput := expectedOutput
 		if containerIndex < 0 || containerIndex >= len(pod.Spec.Containers) {
 			framework.Failf("Invalid container index: %d", containerIndex)
 		}

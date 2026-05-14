@@ -29,13 +29,14 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 	"k8s.io/klog/v2"
+	"k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/streaming/pkg/httpstream"
 )
 
 // NewTransport creates a transport which uses the port forward dialer.
@@ -89,7 +90,21 @@ func (d *Dialer) DialContainerPort(ctx context.Context, addr Addr) (conn net.Con
 	if err != nil {
 		return nil, fmt.Errorf("create round tripper: %w", err)
 	}
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
+	dialer := spdy.NewDialerForStreaming(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
+
+	tunnelingDialer, err := portforward.NewSPDYOverWebsocketDialerForStreaming(req.URL(), restConfig)
+	if err != nil {
+		return nil, err
+	}
+	// First attempt tunneling (websocket) dialer, then fallback to spdy dialer.
+	dialer = portforward.NewFallbackDialerForStreaming(tunnelingDialer, dialer, func(err error) bool {
+		if httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err) {
+			framework.Logf("fallback to secondary dialer from primary dialer err: %v", err)
+			return true
+		}
+		framework.Logf("unexpected error trying to use websockets for portforward: %v", err)
+		return false
+	})
 
 	streamConn, _, err := dialer.Dial(portforward.PortForwardProtocolV1Name)
 	if err != nil {

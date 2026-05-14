@@ -37,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
@@ -64,9 +65,9 @@ const (
 )
 
 // VerifyFSGroupInPod verifies that the passed in filePath contains the expectedFSGroup
-func VerifyFSGroupInPod(f *framework.Framework, filePath, expectedFSGroup string, pod *v1.Pod) {
+func VerifyFSGroupInPod(ctx context.Context, f *framework.Framework, filePath, expectedFSGroup string, pod *v1.Pod) {
 	cmd := fmt.Sprintf("ls -l %s", filePath)
-	stdout, stderr, err := e2evolume.PodExec(f, pod, cmd)
+	stdout, stderr, err := e2epod.ExecShellInPodWithFullOutput(ctx, f, pod.Name, cmd)
 	framework.ExpectNoError(err)
 	framework.Logf("pod %s/%s exec for cmd %s, stdout: %s, stderr: %s", pod.Namespace, pod.Name, cmd, stdout, stderr)
 	fsGroupResult := strings.Fields(stdout)[3]
@@ -91,7 +92,7 @@ func TestKubeletRestartsAndRestoresMount(ctx context.Context, c clientset.Interf
 	seed := time.Now().UTC().UnixNano()
 
 	ginkgo.By("Writing to the volume.")
-	CheckWriteToPath(f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
+	CheckWriteToPath(ctx, f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
 
 	ginkgo.By("Restarting kubelet")
 	KubeletCommand(ctx, KRestart, c, clientPod)
@@ -100,7 +101,7 @@ func TestKubeletRestartsAndRestoresMount(ctx context.Context, c clientset.Interf
 	time.Sleep(20 * time.Second)
 
 	ginkgo.By("Testing that written file is accessible.")
-	CheckReadFromPath(f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
+	CheckReadFromPath(ctx, f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
 
 	framework.Logf("Volume mount detected on pod %s and written file %s is readable post-restart.", clientPod.Name, volumePath)
 }
@@ -111,7 +112,7 @@ func TestKubeletRestartsAndRestoresMap(ctx context.Context, c clientset.Interfac
 	seed := time.Now().UTC().UnixNano()
 
 	ginkgo.By("Writing to the volume.")
-	CheckWriteToPath(f, clientPod, v1.PersistentVolumeBlock, false, volumePath, byteLen, seed)
+	CheckWriteToPath(ctx, f, clientPod, v1.PersistentVolumeBlock, false, volumePath, byteLen, seed)
 
 	ginkgo.By("Restarting kubelet")
 	KubeletCommand(ctx, KRestart, c, clientPod)
@@ -120,7 +121,7 @@ func TestKubeletRestartsAndRestoresMap(ctx context.Context, c clientset.Interfac
 	time.Sleep(20 * time.Second)
 
 	ginkgo.By("Testing that written pv is accessible.")
-	CheckReadFromPath(f, clientPod, v1.PersistentVolumeBlock, false, volumePath, byteLen, seed)
+	CheckReadFromPath(ctx, f, clientPod, v1.PersistentVolumeBlock, false, volumePath, byteLen, seed)
 
 	framework.Logf("Volume map detected on pod %s and written data %s is readable post-restart.", clientPod.Name, volumePath)
 }
@@ -151,7 +152,7 @@ func TestVolumeUnmountsFromDeletedPodWithForceOption(ctx context.Context, c clie
 	ginkgo.By("Writing to the volume.")
 	byteLen := 64
 	seed := time.Now().UTC().UnixNano()
-	CheckWriteToPath(f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
+	CheckWriteToPath(ctx, f, clientPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
 
 	// This command is to make sure kubelet is started after test finishes no matter it fails or not.
 	ginkgo.DeferCleanup(KubeletCommand, KStart, c, clientPod)
@@ -201,7 +202,7 @@ func TestVolumeUnmountsFromDeletedPodWithForceOption(ctx context.Context, c clie
 		gomega.Expect(result.Code).To(gomega.Equal(0), fmt.Sprintf("Expected grep exit code of 0, got %d", result.Code))
 
 		ginkgo.By("Testing that written file is accessible in the second pod.")
-		CheckReadFromPath(f, secondPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
+		CheckReadFromPath(ctx, f, secondPod, v1.PersistentVolumeFilesystem, false, volumePath, byteLen, seed)
 		err = c.CoreV1().Pods(secondPod.Namespace).Delete(context.TODO(), secondPod.Name, metav1.DeleteOptions{})
 		framework.ExpectNoError(err, "when deleting the second pod")
 		err = e2epod.WaitForPodNotFoundInNamespace(ctx, f.ClientSet, secondPod.Name, f.Namespace.Name, f.Timeouts.PodDelete)
@@ -446,28 +447,37 @@ func isSudoPresent(ctx context.Context, nodeIP string, provider string) bool {
 }
 
 // CheckReadWriteToPath check that path can b e read and written
-func CheckReadWriteToPath(f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, path string) {
+func CheckReadWriteToPath(ctx context.Context, f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, path string) {
 	if volMode == v1.PersistentVolumeBlock {
 		// random -> file1
-		e2evolume.VerifyExecInPodSucceed(f, pod, "dd if=/dev/urandom of=/tmp/file1 bs=64 count=1")
+		err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, "dd if=/dev/urandom of=/tmp/file1 bs=64 count=1")
+		framework.ExpectNoError(err, "Failed to write to file1")
 		// file1 -> dev (write to dev)
-		e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("dd if=/tmp/file1 of=%s bs=64 count=1", path))
+		err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("dd if=/tmp/file1 of=%s bs=64 count=1", path))
+		framework.ExpectNoError(err, "Failed to write to block volume")
 		// dev -> file2 (read from dev)
-		e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("dd if=%s of=/tmp/file2 bs=64 count=1", path))
+		err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("dd if=%s of=/tmp/file2 bs=64 count=1", path))
+		framework.ExpectNoError(err, "Failed to read from block volume")
 		// file1 == file2 (check contents)
-		e2evolume.VerifyExecInPodSucceed(f, pod, "diff /tmp/file1 /tmp/file2")
+		err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, "diff /tmp/file1 /tmp/file2")
+		framework.ExpectNoError(err, "Failed to compare file1 and file2")
 		// Clean up temp files
-		e2evolume.VerifyExecInPodSucceed(f, pod, "rm -f /tmp/file1 /tmp/file2")
+		err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, "rm -f /tmp/file1 /tmp/file2")
+		framework.ExpectNoError(err, "Failed to clean up temp files")
 
 		// Check that writing file to block volume fails
-		e2evolume.VerifyExecInPodFail(f, pod, fmt.Sprintf("echo 'Hello world.' > %s/file1.txt", path), 1)
+		err = e2epod.VerifyExecInPodFail(ctx, f, pod, fmt.Sprintf("echo 'Hello world.' > %s/file1.txt", path), 1)
+		framework.ExpectNoError(err, "Expected write to block volume to fail")
 	} else {
 		// text -> file1 (write to file)
-		e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("echo 'Hello world.' > %s/file1.txt", path))
+		err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("echo 'Hello world.' > %s/file1.txt", path))
+		framework.ExpectNoError(err, "Failed to write to file1")
 		// grep file1 (read from file and check contents)
-		e2evolume.VerifyExecInPodSucceed(f, pod, readFile("Hello word.", path))
+		err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, readFile("Hello word.", path))
+		framework.ExpectNoError(err, "Failed to read from file1")
 		// Check that writing to directory as block volume fails
-		e2evolume.VerifyExecInPodFail(f, pod, fmt.Sprintf("dd if=/dev/urandom of=%s bs=64 count=1", path), 1)
+		err = e2epod.VerifyExecInPodFail(ctx, f, pod, fmt.Sprintf("dd if=/dev/urandom of=%s bs=64 count=1", path), 1)
+		framework.ExpectNoError(err, "Expected write to directory to fail")
 	}
 }
 
@@ -481,9 +491,9 @@ func readFile(content, path string) string {
 // genBinDataFromSeed generate binData with random seed
 func genBinDataFromSeed(len int, seed int64) []byte {
 	binData := make([]byte, len)
-	rand.Seed(seed)
+	r := rand.New(rand.NewSource(seed))
 
-	_, err := rand.Read(binData)
+	_, err := r.Read(binData)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	}
@@ -497,7 +507,7 @@ func genBinDataFromSeed(len int, seed int64) []byte {
 // directIO to function correctly, is to read whole sector(s) for Block-mode
 // PVCs (normally a sector is 512 bytes), or memory pages for files (commonly
 // 4096 bytes).
-func CheckReadFromPath(f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, directIO bool, path string, len int, seed int64) {
+func CheckReadFromPath(ctx context.Context, f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, directIO bool, path string, len int, seed int64) {
 	var pathForVolMode string
 	var iflag string
 
@@ -513,8 +523,10 @@ func CheckReadFromPath(f *framework.Framework, pod *v1.Pod, volMode v1.Persisten
 
 	sum := sha256.Sum256(genBinDataFromSeed(len, seed))
 
-	e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("dd if=%s %s bs=%d count=1 | sha256sum", pathForVolMode, iflag, len))
-	e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("dd if=%s %s bs=%d count=1 | sha256sum | grep -Fq %x", pathForVolMode, iflag, len, sum))
+	err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("dd if=%s %s bs=%d count=1 | sha256sum", pathForVolMode, iflag, len))
+	framework.ExpectNoError(err, "Failed to read from %s", pathForVolMode)
+	err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("dd if=%s %s bs=%d count=1 | sha256sum | grep -Fq %x", pathForVolMode, iflag, len, sum))
+	framework.ExpectNoError(err, "Failed to read from %s", pathForVolMode)
 }
 
 // CheckWriteToPath that file can be properly written.
@@ -522,7 +534,7 @@ func CheckReadFromPath(f *framework.Framework, pod *v1.Pod, volMode v1.Persisten
 // Note: nocache does not work with (default) BusyBox Pods. To read without
 // caching, enable directIO with CheckReadFromPath and check the hints about
 // the len requirements.
-func CheckWriteToPath(f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, nocache bool, path string, len int, seed int64) {
+func CheckWriteToPath(ctx context.Context, f *framework.Framework, pod *v1.Pod, volMode v1.PersistentVolumeMode, nocache bool, path string, len int, seed int64) {
 	var pathForVolMode string
 	var oflag string
 
@@ -538,13 +550,15 @@ func CheckWriteToPath(f *framework.Framework, pod *v1.Pod, volMode v1.Persistent
 
 	encoded := base64.StdEncoding.EncodeToString(genBinDataFromSeed(len, seed))
 
-	e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("echo %s | base64 -d | sha256sum", encoded))
-	e2evolume.VerifyExecInPodSucceed(f, pod, fmt.Sprintf("echo %s | base64 -d | dd of=%s %s bs=%d count=1", encoded, pathForVolMode, oflag, len))
+	err := e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("echo %s | base64 -d | sha256sum", encoded))
+	framework.ExpectNoError(err, "Failed to generate sha256sum of encoded data")
+	err = e2epod.VerifyExecInPodSucceed(ctx, f, pod, fmt.Sprintf("echo %s | base64 -d | dd of=%s %s bs=%d count=1", encoded, pathForVolMode, oflag, len))
+	framework.ExpectNoError(err, "Failed to write to %s", pathForVolMode)
 }
 
 // GetSectorSize returns the sector size of the device.
-func GetSectorSize(f *framework.Framework, pod *v1.Pod, device string) int {
-	stdout, _, err := e2evolume.PodExec(f, pod, fmt.Sprintf("blockdev --getss %s", device))
+func GetSectorSize(ctx context.Context, f *framework.Framework, pod *v1.Pod, device string) int {
+	stdout, _, err := e2epod.ExecShellInPodWithFullOutput(ctx, f, pod.Name, fmt.Sprintf("blockdev --getss %s", device))
 	framework.ExpectNoError(err, "Failed to get sector size of %s", device)
 	ss, err := strconv.Atoi(stdout)
 	framework.ExpectNoError(err, "Sector size returned by blockdev command isn't integer value.")
@@ -674,6 +688,66 @@ func WaitForNamespacedGVRDeletion(ctx context.Context, c dynamic.Interface, gvr 
 	return fmt.Errorf("%s %s in namespace %s is not deleted within %v", gvr.Resource, objectName, ns, timeout)
 }
 
+// WaitForOwnedResourcesDeleted waits until all objects of the given GVR
+// in the namespace (or cluster-scoped if ns=="") with the specified ownerUID are deleted.
+func WaitForOwnedResourcesDeleted(ctx context.Context,
+	c dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	ns string, // empty for cluster-scoped resources
+	ownerUID types.UID,
+	poll, timeout time.Duration) error {
+	scope := "cluster-scoped"
+	if ns != "" {
+		scope = fmt.Sprintf("namespace %s", ns)
+	}
+	framework.Logf("Waiting up to %v for all %s %s owned by %s to be deleted", timeout, gvr.Resource, scope, ownerUID)
+
+	successful := WaitUntil(poll, timeout, func() bool {
+		var list *unstructured.UnstructuredList
+		var err error
+		if ns == "" {
+			list, err = c.Resource(gvr).List(ctx, metav1.ListOptions{})
+		} else {
+			list, err = c.Resource(gvr).Namespace(ns).List(ctx, metav1.ListOptions{})
+		}
+		if err != nil {
+			framework.Logf("List %s %s returned error: %v", gvr.Resource, scope, err)
+			return false
+		}
+
+		for _, item := range list.Items {
+			for _, owner := range item.GetOwnerReferences() {
+				if owner.UID == ownerUID {
+					framework.Logf("%s %s is still present, waiting...", gvr.Resource, item.GetName())
+					return false
+				}
+			}
+		}
+
+		framework.Logf("All %s %s owned by %s have been deleted", gvr.Resource, scope, ownerUID)
+		return true
+	})
+
+	if successful {
+		return nil
+	}
+	return fmt.Errorf("some %s %s owned by %s were not deleted within %v", gvr.Resource, scope, ownerUID, timeout)
+}
+
+// FilterResourcesByOwner filters unstructured resources to only those owned by the specified owner kind and UID
+func FilterResourcesByOwner(resources []unstructured.Unstructured, ownerKind string, ownerUID types.UID) []unstructured.Unstructured {
+	var filtered []unstructured.Unstructured
+	for _, resource := range resources {
+		for _, owner := range resource.GetOwnerReferences() {
+			if owner.Kind == ownerKind && owner.UID == ownerUID {
+				filtered = append(filtered, resource)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
 // WaitUntil runs checkDone until a timeout is reached
 func WaitUntil(poll, timeout time.Duration, checkDone func() bool) bool {
 	// TODO (pohly): replace with gomega.Eventually
@@ -722,23 +796,23 @@ func WaitForGVRFinalizer(ctx context.Context, c dynamic.Interface, gvr schema.Gr
 	return err
 }
 
-// VerifyFilePathGidInPod verfies expected GID of the target filepath
-func VerifyFilePathGidInPod(f *framework.Framework, filePath, expectedGid string, pod *v1.Pod) {
+// VerifyFilePathGIDInPod verfies expected GID of the target filepath
+func VerifyFilePathGIDInPod(ctx context.Context, f *framework.Framework, filePath, expectedGID string, pod *v1.Pod) {
 	cmd := fmt.Sprintf("ls -l %s", filePath)
-	stdout, stderr, err := e2evolume.PodExec(f, pod, cmd)
+	stdout, stderr, err := e2epod.ExecShellInPodWithFullOutput(ctx, f, pod.Name, cmd)
 	framework.ExpectNoError(err)
 	framework.Logf("pod %s/%s exec for cmd %s, stdout: %s, stderr: %s", pod.Namespace, pod.Name, cmd, stdout, stderr)
 	ll := strings.Fields(stdout)
-	framework.Logf("stdout split: %v, expected gid: %v", ll, expectedGid)
-	gomega.Expect(ll[3]).To(gomega.Equal(expectedGid))
+	framework.Logf("stdout split: %v, expected gid: %v", ll, expectedGID)
+	gomega.Expect(ll[3]).To(gomega.Equal(expectedGID))
 }
 
-// ChangeFilePathGidInPod changes the GID of the target filepath.
-func ChangeFilePathGidInPod(f *framework.Framework, filePath, targetGid string, pod *v1.Pod) {
-	cmd := fmt.Sprintf("chgrp %s %s", targetGid, filePath)
-	_, _, err := e2evolume.PodExec(f, pod, cmd)
+// ChangeFilePathGIDInPod changes the GID of the target filepath.
+func ChangeFilePathGIDInPod(ctx context.Context, f *framework.Framework, filePath, targetGID string, pod *v1.Pod) {
+	cmd := fmt.Sprintf("chgrp %s %s", targetGID, filePath)
+	_, _, err := e2epod.ExecShellInPodWithFullOutput(ctx, f, pod.Name, cmd)
 	framework.ExpectNoError(err)
-	VerifyFilePathGidInPod(f, filePath, targetGid, pod)
+	VerifyFilePathGIDInPod(ctx, f, filePath, targetGID, pod)
 }
 
 // DeleteStorageClass deletes the passed in StorageClass and catches errors other than "Not Found"
