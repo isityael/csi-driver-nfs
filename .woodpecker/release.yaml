@@ -15,7 +15,7 @@ steps:
       GO_VERSION: "1.25.7"
     settings:
       registry: ghcr.io
-      repo: ghcr.io/sm-moshi/nfsplugin
+      repo: ghcr.io/yaelmoshi/nfsplugin
       dockerfile: Dockerfile.release
       platforms:
         - linux/amd64
@@ -35,14 +35,14 @@ steps:
             from_secret: github_token
       provenance: mode=max
       buildkit_driveropt: network=host
-      cache_from: 'type=registry\,ref=ghcr.io/sm-moshi/nfsplugin:buildcache'
-      cache_to: "type=registry,ref=ghcr.io/sm-moshi/nfsplugin:buildcache,mode=max,ignore-error=true"
+      cache_from: 'type=registry\,ref=ghcr.io/yaelmoshi/nfsplugin:buildcache'
+      cache_to: "type=registry,ref=ghcr.io/yaelmoshi/nfsplugin:buildcache,mode=max,ignore-error=true"
 
   - name: trivy-scan
     failure: ignore
     image: dhi.io/trivy:0.69.3-alpine3.23-dev
     environment:
-      IMAGE_REF: "ghcr.io/sm-moshi/nfsplugin:${CI_COMMIT_TAG}"
+      IMAGE_REF: "ghcr.io/yaelmoshi/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
         from_secret: github_username
       TRIVY_PASSWORD:
@@ -54,7 +54,7 @@ steps:
   - name: cosign-sign
     image: dhi.io/cosign:3.0.5-alpine3.23-dev
     environment:
-      IMAGE_REF: "ghcr.io/sm-moshi/nfsplugin:${CI_COMMIT_TAG}"
+      IMAGE_REF: "ghcr.io/yaelmoshi/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
       COSIGN_KEY:
         from_secret: cosign_key
