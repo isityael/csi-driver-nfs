@@ -165,7 +165,6 @@ github.com/moby/spdystream/spdy
 github.com/moby/sys/mountinfo
 # github.com/moby/sys/userns v0.1.0
 ## explicit; go 1.21
-github.com/moby/sys/userns
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -1185,10 +1184,10 @@ k8s.io/kubernetes/test/utils/ktesting
 k8s.io/kubernetes/test/utils/ktesting/initoption
 k8s.io/kubernetes/test/utils/ktesting/internal
 k8s.io/kubernetes/test/utils/kubeconfig
-# k8s.io/mount-utils v0.32.0
-## explicit; go 1.23.0
+# k8s.io/mount-utils v0.36.1
+## explicit; go 1.26.0
 k8s.io/mount-utils
-# k8s.io/pod-security-admission v0.0.0 => k8s.io/pod-security-admission v0.36.1
+# k8s.io/pod-security-admission v0.36.1 => k8s.io/pod-security-admission v0.36.1
 ## explicit; go 1.26.0
 k8s.io/pod-security-admission/api
 k8s.io/pod-security-admission/policy
