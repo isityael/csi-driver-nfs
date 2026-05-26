@@ -12,7 +12,6 @@ jobs:
               with:
                 go-version: ^1.19
             - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-              uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
             - name: Run linter
               uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
               with:
@@ -23,7 +22,6 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
-            - uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
               uses: actions/checkout@61b9e3751b92087fd0b06925ba6dd6314e06f089 # master
             - name: Verify Helm
               run: |

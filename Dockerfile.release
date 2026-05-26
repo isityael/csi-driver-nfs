@@ -1,4 +1,4 @@
-# Multi-stage release build for sm-moshi/nfsplugin.
+# Multi-stage release build for yaelmoshi/nfsplugin.
 # Cross-compilation: builder runs on BUILDPLATFORM (native speed),
 # Go cross-compiles to TARGETARCH. Only the runtime stage uses QEMU.
 ARG GO_VERSION=1.26.3@sha256:2d6c80227255c3112a4d08e67ba98e58efd3846daf15d9d7d4c389565d881b1a
