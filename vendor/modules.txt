@@ -217,9 +217,6 @@ github.com/opencontainers/go-digest
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/pborman/uuid v1.2.1
-## explicit
-github.com/pborman/uuid
 # github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib

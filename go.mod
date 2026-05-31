@@ -7,7 +7,6 @@ require (
 	github.com/kubernetes-csi/csi-lib-utils v0.24.0
 	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/onsi/gomega v1.41.0
-	github.com/pborman/uuid v1.2.1
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
 	google.golang.org/grpc v1.81.1

@@ -29,7 +29,7 @@ import (
 	"github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/config"
 )
@@ -113,7 +113,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	options := nfs.DriverOptions{
 		NodeID:     nodeID,
 		DriverName: nfs.DefaultDriverName,
-		Endpoint:   fmt.Sprintf("unix:///tmp/csi-%s.sock", uuid.NewUUID().String()),
+		Endpoint:   fmt.Sprintf("unix:///tmp/csi-%s.sock", uuid.NewString()),
 	}
 	nfsDriver = nfs.NewDriver(&options)
 	controllerServer = nfs.NewControllerServer(nfsDriver)
