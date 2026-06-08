@@ -81,8 +81,6 @@ github.com/go-openapi/swag
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
-# github.com/golang/protobuf v1.5.4
-## explicit; go 1.17
 # github.com/google/cel-go v0.26.0
 ## explicit; go 1.22.0
 github.com/google/cel-go/cel
@@ -160,8 +158,6 @@ github.com/moby/spdystream/spdy
 # github.com/moby/sys/mountinfo v0.7.2
 ## explicit; go 1.17
 github.com/moby/sys/mountinfo
-# github.com/moby/sys/userns v0.1.0
-## explicit; go 1.21
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
