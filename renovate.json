@@ -12,9 +12,38 @@
   "enabledManagers": [
     "gomod",
     "dockerfile",
-    "github-actions"
+    "github-actions",
+    "helmv3",
+    "helm-values"
   ],
+  "helmv3": {
+    "managerFilePatterns": [
+      "/charts/latest/csi-driver-nfs/Chart\\.yaml$/"
+    ]
+  },
+  "helm-values": {
+    "managerFilePatterns": [
+      "/charts/latest/csi-driver-nfs/values\\.yaml$/"
+    ]
+  },
   "packageRules": [
+    {
+      "description": "Patch-bump the active Helm chart version when Renovate changes chart dependencies or values",
+      "matchManagers": ["helmv3", "helm-values"],
+      "matchFileNames": [
+        "charts/latest/csi-driver-nfs/Chart.yaml",
+        "charts/latest/csi-driver-nfs/values.yaml"
+      ],
+      "addLabels": ["helm"],
+      "bumpVersions": [
+        {
+          "name": "Patch-bump active CSI NFS Helm Chart.yaml",
+          "filePatterns": ["charts/latest/csi-driver-nfs/Chart.yaml"],
+          "matchStrings": ["version:\\s*\"?v?(?<version>\\d+\\.\\d+\\.\\d+)\"?"],
+          "bumpType": "patch"
+        }
+      ]
+    },
     {
       "matchManagers": ["gomod"],
       "addLabels": ["go"]
