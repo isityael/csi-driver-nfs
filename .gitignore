@@ -71,3 +71,6 @@ cscope.*
 *.pyc
 profile.cov
 nfsplugin
+
+# Local isolated development worktrees
+.worktrees/
