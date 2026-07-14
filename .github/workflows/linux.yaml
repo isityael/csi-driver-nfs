@@ -34,3 +34,30 @@ jobs:
       env:
         COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: goveralls -coverprofile=profile.cov -service=github
+
+  promote:
+    name: Create fork release tag
+    needs: build
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/isityael/dhi-hardening'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out complete history
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Calculate release tag
+      id: release
+      run: hack/next-fork-tag.sh "${FORGEJO_SHA}" >> "${GITHUB_OUTPUT}"
+
+    - name: Create immutable Forgejo tag
+      if: steps.release.outputs.create == 'true'
+      env:
+        RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        FORGEJO_API_URL: ${{ github.api_url }}
+        FORGEJO_REPOSITORY: ${{ github.repository }}
+        FORGEJO_TOKEN: ${{ github.token }}
+      run: hack/create-forgejo-tag.sh "${RELEASE_TAG}" "${FORGEJO_SHA}"
