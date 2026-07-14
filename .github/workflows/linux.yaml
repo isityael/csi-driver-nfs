@@ -39,15 +39,6 @@ jobs:
       if: github.event_name == 'push'
       run: DOCKER_CLI_EXPERIMENTAL=enabled make container
 
-    - name: Install goveralls
-      run: go install github.com/mattn/goveralls@latest
-
-    - name: Send coverage
-      if: github.event_name == 'push'
-      env:
-        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: goveralls -coverprofile=profile.cov -service=github
-
   promote:
     name: Create fork release tag
     needs: build
