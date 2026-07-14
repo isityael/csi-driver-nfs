@@ -52,19 +52,11 @@ helm lint ${PKG_ROOT}/charts/latest/csi-driver-nfs
 
 echo "Comparing image version between helm chart and manifests in deploy folder"
 
-if [[ -z "$(command -v pip)" ]]; then
-  echo "Cannot find pip. Installing pip3..."
-  apt install python3-pip -y
-  update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+if [[ -z "$(command -v jq)" || -z "$(command -v yq)" ]]; then
+  echo "Cannot find jq or yq. Installing distribution packages..."
+  apt update
+  DEBIAN_FRONTEND=noninteractive apt install jq yq -y
 fi
-
-if [[ -z "$(command -v jq)" ]]; then
-  echo "Cannot find jq. Installing yq..."
-  apt install jq -y
-fi
-
-# jq-equivalent for yaml
-pip install yq --ignore-installed PyYAML
 
 # Extract images from csi-nfs-controller.yaml
 expected_csi_provisioner_image="$(cat ${PKG_ROOT}/deploy/csi-nfs-controller.yaml | yq -r .spec.template.spec.containers[0].image | head -n 1)"
