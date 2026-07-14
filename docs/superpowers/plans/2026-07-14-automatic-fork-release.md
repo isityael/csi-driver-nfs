@@ -63,8 +63,8 @@
 **Interfaces:** Consume signed `v4.X.Y-ym.N` tags and produce Git-authored Helm overrides for `csi-driver-nfs.image.nfs.repository` and `csi-driver-nfs.image.nfs.tag`.
 
 - [ ] Render the current wrapper with `helm template argocd-image-updater /Users/yaelmeya/git/m0sh1.cc/infra/apps/cluster/argocd-image-updater | yq 'select(.kind == "ImageUpdater") | .spec.applicationRefs[] | select(.namePattern == "nfs-csi")'`; expect no output.
-- [ ] Add annotations to `/Users/yaelmeya/git/m0sh1.cc/infra/argocd/apps/cluster/nfs-csi.yaml`: image list `nfs=ghcr.io/isityael/nfsplugin:4.x-0`, strategy `semver`, allow-tags `regexp:^v4\.[0-9]+\.[0-9]+-ym\.[0-9]+$`, the two Helm paths above, and Git write-back.
-- [ ] Add an `nfs-csi` entry to the active GHCR `ImageUpdater` CR. Override write-back to `method: "git:repocreds"`, branch `main`, target `argocdsource`; set `imageName: "ghcr.io/isityael/nfsplugin:4.x-0"`; use `updateStrategy: "semver"`, `forceUpdate: true`, canonical allow-tags, and the two Helm manifest targets.
+- [ ] Add annotations to `/Users/yaelmeya/git/m0sh1.cc/infra/argocd/apps/cluster/nfs-csi.yaml`: image list `nfs=ghcr.io/isityael/nfsplugin:4.x-0`, strategy `semver`, allow-tags `regexp:^v4\.[0-9]+\.[0-9]+-ym\.[1-9][0-9]*$`, the two Helm paths above, and Git write-back.
+- [ ] Add an `nfs-csi` entry to the active GHCR `ImageUpdater` CR. Override write-back to `method: "git:repocreds"`, branch `main`, and exact generated target `apps/cluster/nfs-csi/.argocd-source-nfs-csi.yaml`; set `imageName: "ghcr.io/isityael/nfsplugin:4.x-0"`; use `updateStrategy: "semver"`, `forceUpdate: true`, canonical allow-tags, and the two Helm manifest targets.
 - [ ] Change `version: 0.2.58` to `version: 0.2.59` in `/Users/yaelmeya/git/m0sh1.cc/infra/apps/cluster/argocd-image-updater/Chart.yaml`.
 - [ ] Render again and assert exactly one `nfs-csi` entry with the expected selector, write-back target, and Helm paths. Run `mise run policy` and `mise run k8s:lint-changed`; expect success.
 - [ ] Commit only the three infrastructure files with `git commit -m "feat(nfs-csi): automate fork image updates"`.
@@ -77,4 +77,4 @@
 - [ ] Push `/Users/yaelmeya/git/m0sh1.cc/csi-driver-nfs` branch `isityael/dhi-hardening` and `/Users/yaelmeya/git/m0sh1.cc/infra` branch `main` without force.
 - [ ] With `fj` and `woodpecker-cli`, verify the Forgejo build succeeds, promotion creates exactly `v4.14.0-ym.3`, and the Woodpecker tag pipeline publishes and signs `ghcr.io/isityael/nfsplugin:v4.14.0-ym.3`. Rerunning the same commit must not mint another tag.
 - [ ] Run only `argocd app sync argocd-image-updater`, `argocd app wait argocd-image-updater --health --sync`, `argocd app get nfs-csi`, and read-only `kubectl get` commands. Verify the Image Updater Git commit, ArgoCD `Synced/Healthy`, and the exact deployed GHCR digest.
-- [ ] Search Basic Memory before writing. Record the version source and migration, Forgejo-to-Woodpecker chain, ImageUpdater CR ownership, `argocdsource` rationale, verification commands, and immutable-conflict recovery.
+- [ ] Search Basic Memory before writing. Record the version source and migration, Forgejo-to-Woodpecker chain, ImageUpdater CR ownership, exact generated-source write-back path, verification commands, and immutable-conflict recovery.
