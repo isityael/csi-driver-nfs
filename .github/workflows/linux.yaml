@@ -1,7 +1,9 @@
 name: Linux Unit tests
 on:
     pull_request: {}
-    push: {}
+    push:
+      branches:
+      - isityael/dhi-hardening
 
 jobs:
 
@@ -41,6 +43,7 @@ jobs:
       run: go install github.com/mattn/goveralls@latest
 
     - name: Send coverage
+      if: github.event_name == 'push'
       env:
         COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: goveralls -coverprofile=profile.cov -service=github
