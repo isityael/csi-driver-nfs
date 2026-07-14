@@ -226,16 +226,16 @@ test_private_image_auth_contract() {
 }
 
 test_dhi_platform_contract() {
-  grep -Fx 'ALL_ARCH.linux = arm64 amd64' "${MAKEFILE}" >/dev/null
-  grep -Fx 'ALL_OS_ARCH = linux-arm64 linux-amd64' "${MAKEFILE}" >/dev/null
+  grep -Fx 'ALL_ARCH.linux = amd64' "${MAKEFILE}" >/dev/null
+  grep -Fx 'ALL_OS_ARCH = linux-amd64' "${MAKEFILE}" >/dev/null
 
   if sed -n '/^container:/,/^\.PHONY: push/p' "${MAKEFILE}" | \
-    grep -Eq 'nfs-armv7|container-linux-armv7|ppc64le'; then
-    printf 'not ok - DHI container builds include an unsupported platform\n' >&2
+    grep -Eq 'binfmt|arm64|arm/v7|ppc64le'; then
+    printf 'not ok - container builds include a non-amd64 platform\n' >&2
     exit 1
   fi
 
-  printf 'ok - DHI container builds use supported platforms only\n'
+  printf 'ok - container builds target linux/amd64 only\n'
 }
 
 test_first_release
