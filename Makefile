@@ -15,7 +15,7 @@
 CMDS=nfsplugin
 DEPLOY_FOLDER = ./deploy
 CMDS=nfsplugin
-PKG = github.com/kubernetes-csi/csi-driver-nfs
+PKG = github.com/isityael/csi-driver-nfs
 GINKGO_FLAGS = -ginkgo.v
 GO111MODULE = on
 GOPATH ?= $(shell go env GOPATH)

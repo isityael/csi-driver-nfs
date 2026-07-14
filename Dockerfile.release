@@ -18,9 +18,9 @@ COPY pkg/ pkg/
 RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a \
     -ldflags "-s -w -extldflags '-static' \
-    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.driverVersion=${IMAGE_VERSION} \
-    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.gitCommit=${GIT_COMMIT} \
-    -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
+    -X github.com/isityael/csi-driver-nfs/pkg/nfs.driverVersion=${IMAGE_VERSION} \
+    -X github.com/isityael/csi-driver-nfs/pkg/nfs.gitCommit=${GIT_COMMIT} \
+    -X github.com/isityael/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
     -mod vendor -o /nfsplugin ./cmd/nfsplugin
 
 FROM dhi.io/debian-base:trixie-debian13-dev@sha256:712ec3f1c4627b16cdaec6bff3750bcbd84eb9082f2c9f6cd382bc1101abcde0

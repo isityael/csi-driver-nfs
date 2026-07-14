@@ -178,12 +178,6 @@ github.com/inconshreveable/mousetrap
 github.com/json-iterator/go
 # github.com/klauspost/compress v1.19.0
 ## explicit; go 1.24
-# github.com/kubernetes-csi/csi-driver-nfs v0.0.0-20260711031544-89a7fc1b285a
-## explicit; go 1.25.0
-github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs
-github.com/kubernetes-csi/csi-driver-nfs/test/e2e/driver
-github.com/kubernetes-csi/csi-driver-nfs/test/e2e/testsuites
-github.com/kubernetes-csi/csi-driver-nfs/test/utils/testutil
 # github.com/kubernetes-csi/csi-lib-utils v0.24.0
 ## explicit; go 1.26.0
 github.com/kubernetes-csi/csi-lib-utils/protosanitizer
