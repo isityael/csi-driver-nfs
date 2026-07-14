@@ -19,6 +19,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 readonly REPO_ROOT
 readonly TAG_RESOLVER="${REPO_ROOT}/hack/next-fork-tag.sh"
+readonly TAG_CREATOR="${REPO_ROOT}/hack/create-forgejo-tag.sh"
 TMP_ROOT="$(mktemp -d)"
 readonly TMP_ROOT
 
@@ -146,6 +147,61 @@ test_invalid_upstream_version() {
   printf 'ok - malformed upstream versions are rejected\n'
 }
 
+test_tag_creator_http_contract() {
+  local mock_dir args_file commit
+  mock_dir="${TMP_ROOT}/mock-bin"
+  args_file="${TMP_ROOT}/curl-args"
+  commit="0123456789abcdef0123456789abcdef01234567"
+  mkdir -p "${mock_dir}"
+
+  cat > "${mock_dir}/curl" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+output_file=""
+printf '%s\n' "$@" > "${MOCK_ARGS_FILE}"
+while (($# > 0)); do
+  if [[ "$1" == "--output" ]]; then
+    shift
+    output_file="$1"
+  fi
+  shift
+done
+printf '{"message":"mock response"}\n' > "${output_file}"
+printf '%s' "${MOCK_HTTP_STATUS}"
+EOF
+  chmod +x "${mock_dir}/curl"
+
+  PATH="${mock_dir}:${PATH}" \
+    MOCK_ARGS_FILE="${args_file}" \
+    MOCK_HTTP_STATUS=201 \
+    FORGEJO_API_URL=https://git.m0sh1.cc/api/v1 \
+    FORGEJO_REPOSITORY=isityael/csi-driver-nfs \
+    FORGEJO_TOKEN=test-token \
+    "${TAG_CREATOR}" v4.14.0-ym.3 "${commit}"
+
+  grep -Fx -- '--request' "${args_file}" >/dev/null
+  grep -Fx -- 'POST' "${args_file}" >/dev/null
+  grep -Fx -- 'Authorization: token test-token' "${args_file}" >/dev/null
+  grep -Fx -- '{"tag_name":"v4.14.0-ym.3","target":"0123456789abcdef0123456789abcdef01234567"}' \
+    "${args_file}" >/dev/null
+  grep -Fx -- 'https://git.m0sh1.cc/api/v1/repos/isityael/csi-driver-nfs/tags' \
+    "${args_file}" >/dev/null
+  printf 'ok - tag creation uses the Forgejo repository API\n'
+
+  if PATH="${mock_dir}:${PATH}" \
+    MOCK_ARGS_FILE="${args_file}" \
+    MOCK_HTTP_STATUS=409 \
+    FORGEJO_API_URL=https://git.m0sh1.cc/api/v1 \
+    FORGEJO_REPOSITORY=isityael/csi-driver-nfs \
+    FORGEJO_TOKEN=test-token \
+    "${TAG_CREATOR}" v4.14.0-ym.3 "${commit}" >/dev/null 2>&1; then
+    printf 'not ok - immutable tag conflicts must fail\n' >&2
+    exit 1
+  fi
+  printf 'ok - immutable tag conflicts fail safely\n'
+}
+
 test_first_release
 test_legacy_migration
 test_canonical_increment
@@ -153,3 +209,4 @@ test_upstream_reset
 test_unrelated_tags_ignored
 test_already_released_commit
 test_invalid_upstream_version
+test_tag_creator_http_contract
