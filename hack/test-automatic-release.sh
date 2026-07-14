@@ -21,6 +21,7 @@ readonly REPO_ROOT
 readonly TAG_RESOLVER="${REPO_ROOT}/hack/next-fork-tag.sh"
 readonly TAG_CREATOR="${REPO_ROOT}/hack/create-forgejo-tag.sh"
 readonly LINUX_WORKFLOW="${REPO_ROOT}/.github/workflows/linux.yaml"
+readonly MAKEFILE="${REPO_ROOT}/Makefile"
 TMP_ROOT="$(mktemp -d)"
 readonly TMP_ROOT
 
@@ -224,6 +225,19 @@ test_private_image_auth_contract() {
   printf 'ok - private image builds authenticate only for trusted pushes\n'
 }
 
+test_dhi_platform_contract() {
+  grep -Fx 'ALL_ARCH.linux = arm64 amd64' "${MAKEFILE}" >/dev/null
+  grep -Fx 'ALL_OS_ARCH = linux-arm64 linux-amd64' "${MAKEFILE}" >/dev/null
+
+  if sed -n '/^container:/,/^\.PHONY: push/p' "${MAKEFILE}" | \
+    grep -Eq 'nfs-armv7|container-linux-armv7|ppc64le'; then
+    printf 'not ok - DHI container builds include an unsupported platform\n' >&2
+    exit 1
+  fi
+
+  printf 'ok - DHI container builds use supported platforms only\n'
+}
+
 test_first_release
 test_legacy_migration
 test_canonical_increment
@@ -233,3 +247,4 @@ test_already_released_commit
 test_invalid_upstream_version
 test_tag_creator_http_contract
 test_private_image_auth_contract
+test_dhi_platform_contract
