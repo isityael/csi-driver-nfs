@@ -20,6 +20,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 readonly REPO_ROOT
 readonly TAG_RESOLVER="${REPO_ROOT}/hack/next-fork-tag.sh"
 readonly TAG_CREATOR="${REPO_ROOT}/hack/create-forgejo-tag.sh"
+readonly LINUX_WORKFLOW="${REPO_ROOT}/.github/workflows/linux.yaml"
 TMP_ROOT="$(mktemp -d)"
 readonly TMP_ROOT
 
@@ -202,6 +203,27 @@ EOF
   printf 'ok - immutable tag conflicts fail safely\n'
 }
 
+test_private_image_auth_contract() {
+  local auth_step build_step
+  auth_step='.jobs.build.steps[] | select(.name == "Authenticate to DHI")'
+  build_step='.jobs.build.steps[] | select(.name == "Build container image")'
+
+  yq -e "${auth_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${auth_step} | .env.DHI_USERNAME == \"\${{ secrets.DHI_USERNAME }}\"" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${auth_step} | .env.DHI_TOKEN == \"\${{ secrets.DHI_TOKEN }}\"" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${auth_step} | .run | contains(\"docker login dhi.io\")" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${build_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${build_step} | .run | contains(\"make container\")" \
+    "${LINUX_WORKFLOW}" >/dev/null
+
+  printf 'ok - private image builds authenticate only for trusted pushes\n'
+}
+
 test_first_release
 test_legacy_migration
 test_canonical_increment
@@ -210,3 +232,4 @@ test_unrelated_tags_ignored
 test_already_released_commit
 test_invalid_upstream_version
 test_tag_creator_http_contract
+test_private_image_auth_contract
