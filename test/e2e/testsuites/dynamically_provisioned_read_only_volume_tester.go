@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kubernetes-csi/csi-driver-nfs/test/e2e/driver"
+	"github.com/isityael/csi-driver-nfs/test/e2e/driver"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"

@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	"github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs"
+	"github.com/isityael/csi-driver-nfs/pkg/nfs"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	apps "k8s.io/api/apps/v1"
