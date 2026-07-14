@@ -16,15 +16,14 @@ jobs:
     name: Shellcheck
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: Run ShellCheck
-      uses: reviewdog/action-shellcheck@4c07458293ac342d477251099501a718ae5ef86e # v1.32.0
+      uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
+      env:
+         SHELLCHECK_OPTS: -e SC2034
       with:
-        level: warning
-        fail_level: none
-        filter_mode: nofilter
-        exclude: |
-          ./vendor/*
-          ./release-tools/*
-          ./hack/*
-        shellcheck_flags: --external-sources -e SC2034
+        severity: warning
+        check_together: 'yes'
+        disable_matcher: false
+        ignore_paths: vendor release-tools hack
+        format: gcc
