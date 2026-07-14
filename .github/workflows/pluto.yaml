@@ -15,7 +15,17 @@ jobs:
 
     # https://pluto.docs.fairwinds.com/advanced/#display-options
     - name: Download pluto
-      uses: FairwindsOps/pluto/github-action@5f85d3f5474aede69f17f71d3e0a36674b8b8b62 # v5.24.1
+      env:
+        PLUTO_VERSION: 5.24.1
+        PLUTO_SHA256: 3664f9dafa9d4598aaf027604a83b0992e0181735a0d5265cbd22857a6015e50
+      run: |
+        archive="pluto_${PLUTO_VERSION}_linux_amd64.tar.gz"
+        install_dir="${RUNNER_TEMP:-/tmp}/pluto-bin"
+        mkdir -p "${install_dir}"
+        curl -fsSLO "https://github.com/FairwindsOps/pluto/releases/download/v${PLUTO_VERSION}/${archive}"
+        echo "${PLUTO_SHA256}  ${archive}" | sha256sum -c
+        tar -xzf "${archive}" -C "${install_dir}" pluto
+        echo "${install_dir}" >> "${GITHUB_PATH}"
 
     - name: Check deploy folder
       run: |
