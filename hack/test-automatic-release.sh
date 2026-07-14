@@ -21,6 +21,7 @@ readonly REPO_ROOT
 readonly TAG_RESOLVER="${REPO_ROOT}/hack/next-fork-tag.sh"
 readonly TAG_CREATOR="${REPO_ROOT}/hack/create-forgejo-tag.sh"
 readonly LINUX_WORKFLOW="${REPO_ROOT}/.github/workflows/linux.yaml"
+readonly MAKEFILE="${REPO_ROOT}/Makefile"
 TMP_ROOT="$(mktemp -d)"
 readonly TMP_ROOT
 
@@ -208,6 +209,11 @@ test_private_image_auth_contract() {
   auth_step='.jobs.build.steps[] | select(.name == "Authenticate to DHI")'
   build_step='.jobs.build.steps[] | select(.name == "Build container image")'
 
+  yq -e '.["on"].push.branches | length == 1' \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e '.["on"].push.branches[0] == "isityael/dhi-hardening"' \
+    "${LINUX_WORKFLOW}" >/dev/null
+
   yq -e "${auth_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
     "${LINUX_WORKFLOW}" >/dev/null
   yq -e "${auth_step} | .env.DHI_USERNAME == \"\${{ secrets.DHI_USERNAME }}\"" \
@@ -221,7 +227,26 @@ test_private_image_auth_contract() {
   yq -e "${build_step} | .run | contains(\"make container\")" \
     "${LINUX_WORKFLOW}" >/dev/null
 
+  if yq -e '.jobs.build.steps[] | select(.name == "Install goveralls" or .name == "Send coverage")' \
+    "${LINUX_WORKFLOW}" >/dev/null 2>&1; then
+    printf 'not ok - GitHub-only coverage upload is still configured\n' >&2
+    exit 1
+  fi
+
   printf 'ok - private image builds authenticate only for trusted pushes\n'
+}
+
+test_dhi_platform_contract() {
+  grep -Fx 'ALL_ARCH.linux = amd64' "${MAKEFILE}" >/dev/null
+  grep -Fx 'ALL_OS_ARCH = linux-amd64' "${MAKEFILE}" >/dev/null
+
+  if sed -n '/^container:/,/^\.PHONY: push/p' "${MAKEFILE}" | \
+    grep -Eq 'binfmt|arm64|arm/v7|ppc64le'; then
+    printf 'not ok - container builds include a non-amd64 platform\n' >&2
+    exit 1
+  fi
+
+  printf 'ok - container builds target linux/amd64 only\n'
 }
 
 test_first_release
@@ -233,3 +258,4 @@ test_already_released_commit
 test_invalid_upstream_version
 test_tag_creator_http_contract
 test_private_image_auth_contract
+test_dhi_platform_contract

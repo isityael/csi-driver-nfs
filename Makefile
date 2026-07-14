@@ -48,8 +48,8 @@ E2E_HELM_OPTIONS += ${EXTRA_HELM_OPTIONS}
 # Output type of docker buildx build
 OUTPUT_TYPE ?= docker
 
-ALL_ARCH.linux = arm64 amd64 ppc64le
-ALL_OS_ARCH = linux-arm64 linux-arm-v7 linux-amd64 linux-ppc64le
+ALL_ARCH.linux = amd64
+ALL_OS_ARCH = linux-amd64
 
 .EXPORT_ALL_VARIABLES:
 
@@ -96,16 +96,10 @@ container-linux-armv7:
 container:
 	docker buildx rm container-builder || true
 	docker buildx create --use --name=container-builder
-	# enable qemu for arm64 build
-	# https://github.com/docker/buildx/issues/464#issuecomment-741507760
-	docker run --privileged --rm tonistiigi/binfmt --uninstall qemu-aarch64
-	docker run --rm --privileged tonistiigi/binfmt --install all
 	for arch in $(ALL_ARCH.linux); do \
 		ARCH=$${arch} $(MAKE) nfs; \
 		ARCH=$${arch} $(MAKE) container-build; \
 	done
-	$(MAKE) nfs-armv7
-	$(MAKE) container-linux-armv7
 
 .PHONY: push
 push:
