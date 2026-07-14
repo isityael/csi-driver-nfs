@@ -21,10 +21,12 @@ for migration purposes. Subsequent releases are `v4.14.0-ym.4`,
 `v4.14.0-ym.5`, and so on. When the upstream application version changes, the
 fork revision resets to 1, for example `v4.15.0-ym.1`.
 
-The upstream version is derived from the checked-in Helm chart application
-version rather than from the previous Git tag. The calculation accepts only
-tags belonging to the same upstream version and matching the canonical fork
-namespace.
+The upstream version is derived from the canonical `IMAGE_VERSION ?=` value in
+`/Users/yaelmeya/git/m0sh1.cc/csi-driver-nfs/Makefile` rather than from the
+previous Git tag. The `charts/latest` chart intentionally uses
+`appVersion: latest` and is therefore not a release-version source. The
+calculation accepts only tags belonging to the same upstream version and
+matching the canonical fork namespace.
 
 ## Promotion workflow
 
@@ -67,9 +69,12 @@ existing release pipeline can be retried without minting another Git tag.
 
 The ArgoCD Application manifest at
 `/Users/yaelmeya/git/m0sh1.cc/infra/argocd/apps/cluster/nfs-csi.yaml` is annotated
-for `ghcr.io/isityael/nfsplugin`. Image discovery is restricted to canonical
-`v<upstream>-ym.<revision>` tags and uses semantic-version ordering with an
-explicit prerelease-compatible constraint.
+for `ghcr.io/isityael/nfsplugin`. The application is also enrolled in the
+`ghcr-apps` ImageUpdater custom resource at
+`/Users/yaelmeya/git/m0sh1.cc/infra/apps/cluster/argocd-image-updater/templates/image-updater-ghcr-apps.yaml`,
+which is the active image inventory for this installation. Image discovery is
+restricted to canonical `v<upstream>-ym.<revision>` tags and uses
+semantic-version ordering with an explicit prerelease-compatible constraint.
 
 Image Updater uses Git write-back. It commits the selected Helm parameter
 override to the infrastructure repository; it does not write directly to the
