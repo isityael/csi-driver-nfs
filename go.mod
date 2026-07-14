@@ -1,6 +1,6 @@
 module github.com/kubernetes-csi/csi-driver-nfs
 
-go 1.26.0
+go 1.26.5
 
 require (
 	github.com/container-storage-interface/spec v1.12.0
@@ -13,7 +13,7 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
-	k8s.io/client-go v0.36.2
+	k8s.io/client-go v1.5.2
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kubernetes v1.36.2
 	k8s.io/mount-utils v0.36.2
