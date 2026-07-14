@@ -205,9 +205,13 @@ EOF
 }
 
 test_private_image_auth_contract() {
-  local auth_step build_step
+  local auth_step build_step coverage_step
   auth_step='.jobs.build.steps[] | select(.name == "Authenticate to DHI")'
   build_step='.jobs.build.steps[] | select(.name == "Build container image")'
+  coverage_step='.jobs.build.steps[] | select(.name == "Send coverage")'
+
+  yq -e '.on.push.branches == ["isityael/dhi-hardening"]' \
+    "${LINUX_WORKFLOW}" >/dev/null
 
   yq -e "${auth_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
     "${LINUX_WORKFLOW}" >/dev/null
@@ -220,6 +224,8 @@ test_private_image_auth_contract() {
   yq -e "${build_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
     "${LINUX_WORKFLOW}" >/dev/null
   yq -e "${build_step} | .run | contains(\"make container\")" \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e "${coverage_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
     "${LINUX_WORKFLOW}" >/dev/null
 
   printf 'ok - private image builds authenticate only for trusted pushes\n'
