@@ -25,7 +25,17 @@ jobs:
         export PATH=$PATH:$HOME/.local/bin
         make verify
         go test -race -covermode=atomic -coverprofile=profile.cov ./pkg/...
-        export DOCKER_CLI_EXPERIMENTAL=enabled && make container
+
+    - name: Authenticate to DHI
+      if: github.event_name == 'push'
+      env:
+        DHI_USERNAME: ${{ secrets.DHI_USERNAME }}
+        DHI_TOKEN: ${{ secrets.DHI_TOKEN }}
+      run: printf '%s' "${DHI_TOKEN}" | docker login dhi.io --username "${DHI_USERNAME}" --password-stdin
+
+    - name: Build container image
+      if: github.event_name == 'push'
+      run: DOCKER_CLI_EXPERIMENTAL=enabled make container
 
     - name: Install goveralls
       run: go install github.com/mattn/goveralls@latest
