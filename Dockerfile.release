@@ -23,7 +23,7 @@ RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
     -X github.com/kubernetes-csi/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
     -mod vendor -o /nfsplugin ./cmd/nfsplugin
 
-FROM registry.k8s.io/build-image/debian-base:bookworm-v1.0.7@sha256:368abceecc1308e0913a6fd5ab89a513ee4268becefc2a82dbe616462b29a46b
+FROM registry.k8s.io/build-image/debian-base:bookworm-v1.0.8@sha256:bb933ac3606ff3f69854a7eba5da1eaef5064ef62d83f3cb0e4be40eb53522e0
 COPY --from=builder /nfsplugin /nfsplugin
 RUN apt update && apt upgrade -y && apt-mark unhold libcap2 && clean-install ca-certificates mount nfs-common netbase
 ENTRYPOINT ["/nfsplugin"]
