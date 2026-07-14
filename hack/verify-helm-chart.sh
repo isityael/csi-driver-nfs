@@ -54,8 +54,12 @@ echo "Comparing image version between helm chart and manifests in deploy folder"
 
 if [[ -z "$(command -v jq)" || -z "$(command -v yq)" ]]; then
   echo "Cannot find jq or yq. Installing distribution packages..."
-  apt update
-  DEBIAN_FRONTEND=noninteractive apt install jq yq -y
+  sudo_cmd=()
+  if [[ "${EUID}" -ne 0 ]]; then
+    sudo_cmd=(sudo)
+  fi
+  "${sudo_cmd[@]}" apt-get update
+  "${sudo_cmd[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install jq yq -y
 fi
 
 # Extract images from csi-nfs-controller.yaml
