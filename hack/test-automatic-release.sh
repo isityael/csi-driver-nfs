@@ -210,7 +210,9 @@ test_private_image_auth_contract() {
   build_step='.jobs.build.steps[] | select(.name == "Build container image")'
   coverage_step='.jobs.build.steps[] | select(.name == "Send coverage")'
 
-  yq -e '.on.push.branches == ["isityael/dhi-hardening"]' \
+  yq -e '.["on"].push.branches | length == 1' \
+    "${LINUX_WORKFLOW}" >/dev/null
+  yq -e '.["on"].push.branches[0] == "isityael/dhi-hardening"' \
     "${LINUX_WORKFLOW}" >/dev/null
 
   yq -e "${auth_step} | .[\"if\"] == \"github.event_name == 'push'\"" \
