@@ -49,6 +49,9 @@ steps:
 
   - name: cosign-sign
     image: dhi.io/cosign:3.0.5-alpine3.23-dev
+    # Homelab DNS blocks *.rekor.sigstore.dev; use a public resolver only for
+    # the transparency-log signing step instead of disabling Rekor uploads.
+    dns: 1.1.1.1
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
