@@ -80,7 +80,11 @@ Image Updater uses Git write-back. It commits the selected Helm parameter
 override to the infrastructure repository; it does not write directly to the
 cluster. ArgoCD then reconciles that Git commit through the existing automated
 sync policy. The checked-in wrapper values remain the recovery baseline while
-the generated ArgoCD source override records the deployed image version.
+the generated ArgoCD source override at
+`/Users/yaelmeya/git/m0sh1.cc/infra/apps/cluster/nfs-csi/.argocd-source-nfs-csi.yaml`
+records the deployed image version. The exact path overrides this installation's
+global `helmvalues` target; the deployed Image Updater version does not define
+an `argocdsource` target keyword.
 
 ## Security and failure handling
 
