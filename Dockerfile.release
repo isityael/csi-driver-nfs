@@ -1,7 +1,7 @@
 # Multi-stage release build for isityael/nfsplugin.
 # Cross-compilation: builder runs on BUILDPLATFORM (native speed),
 # Go cross-compiles to TARGETARCH. Only the runtime stage uses QEMU.
-ARG GO_VERSION=1.26.5@sha256:983a0823d3dab83604654972fe6bbda13142a7c57f987804fbdddb9d47dad9ec
+ARG GO_VERSION=1.26.5@sha256:ae5a2316d12f3e78fd99177dad452e6ad4f240af2d71d57b480c3477f250fec6
 
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS builder
 ARG TARGETOS=linux
@@ -23,7 +23,7 @@ RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
     -X github.com/isityael/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
     -mod vendor -o /nfsplugin ./cmd/nfsplugin
 
-FROM dhi.io/debian-base:trixie-debian13-dev@sha256:712ec3f1c4627b16cdaec6bff3750bcbd84eb9082f2c9f6cd382bc1101abcde0
+FROM dhi.io/debian-base:trixie-debian13-dev@sha256:5c45913e72c90581fc4cca57c3a7cd7dcac2d9fa44fce24fe4cfa342e5ccb7a6
 COPY --from=builder /nfsplugin /nfsplugin
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates mount netbase nfs-common && \
