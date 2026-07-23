@@ -11,13 +11,13 @@ require (
 	go.uber.org/goleak v1.3.0
 	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	k8s.io/api v0.36.2
-	k8s.io/apimachinery v0.36.2
-	k8s.io/client-go v0.36.2
+	k8s.io/api v0.36.3
+	k8s.io/apimachinery v0.36.3
+	k8s.io/client-go v0.36.3
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kubernetes v1.36.3
-	k8s.io/mount-utils v0.36.2
-	k8s.io/pod-security-admission v0.36.2
+	k8s.io/mount-utils v0.36.3
+	k8s.io/pod-security-admission v0.36.3
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -57,7 +57,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
-	k8s.io/streaming v0.36.2 // indirect
+	k8s.io/streaming v0.36.3 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
@@ -120,9 +120,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.36.2 // indirect
-	k8s.io/apiserver v0.36.2 // indirect
-	k8s.io/component-base v0.36.2 // indirect
-	k8s.io/component-helpers v0.36.2 // indirect
+	k8s.io/apiserver v0.36.3 // indirect
+	k8s.io/component-base v0.36.3 // indirect
+	k8s.io/component-helpers v0.36.3 // indirect
 	k8s.io/controller-manager v0.36.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20260706235625-cdb1db5517a0 // indirect
 	k8s.io/kubectl v0.36.2 // indirect
@@ -132,24 +132,24 @@ require (
 )
 
 replace (
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.36.2
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.36.2
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.36.2
-	k8s.io/controller-manager => k8s.io/controller-manager v0.36.2
-	k8s.io/cri-api => k8s.io/cri-api v0.36.2
-	k8s.io/cri-client => k8s.io/cri-client v0.36.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.36.3
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.36.3
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.36.3
+	k8s.io/controller-manager => k8s.io/controller-manager v0.36.3
+	k8s.io/cri-api => k8s.io/cri-api v0.36.3
+	k8s.io/cri-client => k8s.io/cri-client v0.36.3
 	k8s.io/cri-streaming => k8s.io/cri-streaming v0.36.3
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.36.2
-	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.36.2
-	k8s.io/endpointslice => k8s.io/endpointslice v0.36.2
-	k8s.io/externaljwt => k8s.io/externaljwt v0.36.2
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.36.2
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.36.2
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.36.2
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.36.2
-	k8s.io/kubectl => k8s.io/kubectl v0.36.2
-	k8s.io/kubelet => k8s.io/kubelet v0.36.2
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.36.3
+	k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.36.3
+	k8s.io/endpointslice => k8s.io/endpointslice v0.36.3
+	k8s.io/externaljwt => k8s.io/externaljwt v0.36.3
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.36.3
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.36.3
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.36.3
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.36.3
+	k8s.io/kubectl => k8s.io/kubectl v0.36.3
+	k8s.io/kubelet => k8s.io/kubelet v0.36.3
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.36.1
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.36.2
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.36.2
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.36.3
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.36.3
 )
