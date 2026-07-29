@@ -7,7 +7,7 @@ when:
 
 steps:
   - name: build-and-push
-    image: woodpeckerci/plugin-docker-buildx:6.0.4
+    image: woodpeckerci/plugin-docker-buildx:6.0.4@sha256:765ebfaa6f71383197babb2352c7902bafe141e6232a62cafb740510a788c550
     privileged: true
     settings:
       registry: ghcr.io
