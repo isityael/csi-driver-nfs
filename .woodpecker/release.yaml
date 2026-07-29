@@ -41,7 +41,7 @@ steps:
 
   - name: trivy-scan
     failure: ignore
-    image: dhi.io/trivy:0.69.3-alpine3.23-dev
+    image: dhi.io/trivy:0.71.2-alpine3.23-dev@sha256:6d812147979905c7cc90bbb3d2fc0bb04450f3ac4d6bb3447fad53ce709a4b21
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
@@ -53,7 +53,7 @@ steps:
       - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
 
   - name: cosign-sign
-    image: dhi.io/cosign:3.0.5-alpine3.23-dev
+    image: dhi.io/cosign:3.1.2-alpine3.23-dev@sha256:ae1c995e4df642e20c81b258dadefa4d5bb9e3cf08d6a2f3f958b525367bc0e8
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
