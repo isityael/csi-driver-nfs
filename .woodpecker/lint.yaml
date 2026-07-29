@@ -11,7 +11,7 @@ steps:
       - chart-version-guard check --ci woodpecker --repo .
 
   - name: helm-lint
-    image: dhi.io/helm:3.21.3-debian13-dev@sha256:b31428311f57aa73134ab30324db1a5627ad66f18086ebc14405e95f4312edea
+    image: dhi.io/helm:4.2.3-debian13-dev@sha256:cc75e7d23ac64803bf20fef75b6f92faca493312295157c85833f28235309dca
     commands:
       - helm lint charts/latest/csi-driver-nfs
       - echo "Helm lint passed."
