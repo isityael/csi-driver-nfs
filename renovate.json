@@ -14,13 +14,28 @@
     "dockerfile",
     "github-actions",
     "helmv3",
-    "helm-values"
+    "helm-values",
+    "woodpecker",
+    "custom.regex"
   ],
   "helmv3": {
     "managerFilePatterns": [
       "/charts/latest/csi-driver-nfs/Chart\\.yaml$/"
     ]
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Go builder image passed through the Woodpecker build argument",
+      "managerFilePatterns": ["/^\\.woodpecker/release\\.yaml$/"],
+      "matchStrings": [
+        "GO_VERSION: \"(?<currentValue>[^\"]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
+      ],
+      "depNameTemplate": "golang",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    }
+  ],
   "helm-values": {
     "managerFilePatterns": [
       "/charts/latest/csi-driver-nfs/values\\.yaml$/"
