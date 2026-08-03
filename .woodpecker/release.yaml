@@ -53,7 +53,7 @@ steps:
       - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
 
   - name: cosign-sign
-    image: dhi.io/cosign:3.1.2-alpine3.23-dev@sha256:ae1c995e4df642e20c81b258dadefa4d5bb9e3cf08d6a2f3f958b525367bc0e8
+    image: dhi.io/cosign:3.1.2-alpine3.23-dev@sha256:8e64c61462a5385063c30fa8e1c10e23e432ca2e5f93ed31feb10ad9f813f3b4
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
