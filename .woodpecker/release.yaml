@@ -16,7 +16,7 @@ steps:
       build_args:
         IMAGE_VERSION: "${CI_COMMIT_TAG}"
         GIT_COMMIT: "${CI_COMMIT_SHA}"
-        GO_VERSION: "1.26.5@sha256:3aff6657219a4d9c14e27fb1d8976c49c29fddb70ba835014f477e1c70636647"
+        GO_VERSION: "1.26.5@sha256:2005724102f45917a63e9d092fc0e4ea56ea575048ce147caad5f5f61502c365"
       platforms:
         - linux/amd64
       tags:
@@ -41,7 +41,7 @@ steps:
 
   - name: trivy-scan
     failure: ignore
-    image: dhi.io/trivy:0.71.2-alpine3.23-dev@sha256:6d812147979905c7cc90bbb3d2fc0bb04450f3ac4d6bb3447fad53ce709a4b21
+    image: dhi.io/trivy:0.71.2-alpine3.23-dev@sha256:16aa19d611de218218867a833da26290b136166f7e1a661303946756a8704380
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
