@@ -21,6 +21,7 @@ readonly REPO_ROOT
 readonly TAG_RESOLVER="${REPO_ROOT}/hack/next-fork-tag.sh"
 readonly TAG_CREATOR="${REPO_ROOT}/hack/create-forgejo-tag.sh"
 readonly LINUX_WORKFLOW="${REPO_ROOT}/.github/workflows/linux.yaml"
+readonly RELEASE_WORKFLOW="${REPO_ROOT}/.forgejo/workflows/release-tag.yaml"
 readonly MAKEFILE="${REPO_ROOT}/Makefile"
 TMP_ROOT="$(mktemp -d)"
 readonly TMP_ROOT
@@ -236,6 +237,21 @@ test_private_image_auth_contract() {
   printf 'ok - private image builds authenticate only for trusted pushes\n'
 }
 
+test_forgejo_release_workflow_contract() {
+  test -f "${RELEASE_WORKFLOW}"
+  yq -e '.["on"].push.branches | length == 1' \
+    "${RELEASE_WORKFLOW}" >/dev/null
+  yq -e '.["on"].push.branches[0] == "isityael/dhi-hardening"' \
+    "${RELEASE_WORKFLOW}" >/dev/null
+  yq -e '.["on"].push.paths[] | select(. == "Dockerfile.release")' \
+    "${RELEASE_WORKFLOW}" >/dev/null
+  yq -e '.jobs.release.steps[] | select(.name == "Create immutable release tag") | .env.FORGEJO_API_URL == "${{ github.server_url }}/api/v1"' \
+    "${RELEASE_WORKFLOW}" >/dev/null
+  yq -e '.jobs.release.steps[] | select(.name == "Create immutable release tag") | .env.FORGEJO_TOKEN == "${{ github.token }}"' \
+    "${RELEASE_WORKFLOW}" >/dev/null
+  printf 'ok - Forgejo creates release tags for runtime-affecting merges\n'
+}
+
 test_dhi_platform_contract() {
   grep -Fx 'ALL_ARCH.linux = amd64' "${MAKEFILE}" >/dev/null
   grep -Fx 'ALL_OS_ARCH = linux-amd64' "${MAKEFILE}" >/dev/null
@@ -259,3 +275,4 @@ test_invalid_upstream_version
 test_tag_creator_http_contract
 test_private_image_auth_contract
 test_dhi_platform_contract
+test_forgejo_release_workflow_contract
