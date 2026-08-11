@@ -30,7 +30,13 @@ jobs:
 
       - name: Calculate release tag
         id: release
-        run: hack/next-fork-tag.sh "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+        env:
+          FORGEJO_API_URL: ${{ github.server_url }}/api/v1
+          FORGEJO_REPOSITORY: ${{ github.repository }}
+          FORGEJO_TOKEN: ${{ github.token }}
+        run: |
+          hack/wait-for-woodpecker-success.sh "${GITHUB_SHA}" ci/woodpecker/push/lint
+          hack/next-fork-tag.sh "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
 
       - name: Create immutable release tag
         if: steps.release.outputs.create == 'true'
