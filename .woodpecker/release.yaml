@@ -16,7 +16,7 @@ steps:
       build_args:
         IMAGE_VERSION: "${CI_COMMIT_TAG}"
         GIT_COMMIT: "${CI_COMMIT_SHA}"
-        GO_VERSION: "1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6"
+        GO_VERSION: "1.27.0@sha256:65b6f280bf050ec5af12716857e8ea8439d694dbba8f31ceeb7630670071f2bb"
       platforms:
         - linux/amd64
       tags:
