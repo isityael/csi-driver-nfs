@@ -8,7 +8,8 @@
   "pinDigests": false,
   "postUpdateOptions": ["gomodTidy"],
   "ignorePaths": [
-    "charts/*/*.tgz"
+    "charts/*/*.tgz",
+    "vendor/**"
   ],
   "enabledManagers": [
     "gomod",
