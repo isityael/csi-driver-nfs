@@ -6,12 +6,12 @@ when:
 
 steps:
   - name: chart-version-guard
-    image: ghcr.io/isityael/chart-version-guard:main@sha256:fcfaa83ad6b20fc7e0f15e7ca128fc0d36816bf38ef7fff40526fb3924b557e8
+    image: ghcr.io/isityael/chart-version-guard:main@sha256:f96450cb20ef32ff0b5926e3cb7f1aa5421a6e77ef99365b1607ae6ee798f398
     commands:
       - chart-version-guard check --ci woodpecker --repo .
 
   - name: helm-lint
-    image: dhi.io/helm:4.2.4-debian13-dev@sha256:34c4d67ac222cab255b8a737d86e834165e1a3f537699824992f183d872f456c
+    image: dhi.io/helm:4.2.4-debian13-dev@sha256:d8c4b696a9e7d0ee7722215d44118b3321270f6321fe5d05809526cebe422174
     commands:
       - helm lint charts/latest/csi-driver-nfs
       - echo "Helm lint passed."
