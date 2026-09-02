@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM dhi.io/debian-base:trixie-debian13-dev@sha256:54864b2674f31675617756cbb5341a4262d21e9bb322cf61ddf974c718daaf9d
+FROM dhi.io/debian-base:trixie-debian13-dev@sha256:f73bed6c42cc6f1c65f34f19b9685aab3a1cd4968d85eb30398303bcc4c589b5
 
 ARG ARCH
 ARG binary=./bin/${ARCH}/nfsplugin
