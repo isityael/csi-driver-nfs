@@ -23,7 +23,7 @@ RUN BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" && \
     -X github.com/isityael/csi-driver-nfs/pkg/nfs.buildDate=${BUILD_DATE}" \
     -mod vendor -o /nfsplugin ./cmd/nfsplugin
 
-FROM dhi.io/debian-base:trixie-debian13-dev@sha256:f73bed6c42cc6f1c65f34f19b9685aab3a1cd4968d85eb30398303bcc4c589b5
+FROM dhi.io/debian-base:trixie-debian13-dev@sha256:686404e54011e51bd2f4eb050e28ca9d560703db286c8cb6cf8efaaa0bf384bc
 COPY --from=builder /nfsplugin /nfsplugin
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates mount netbase nfs-common && \
