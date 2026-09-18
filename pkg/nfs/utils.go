@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,9 +42,18 @@ const (
 	retain                          = "retain"
 	archive                         = "archive"
 	volumeOperationAlreadyExistsFmt = "An operation with the given Volume ID %s already exists"
+	// unsetOwner is passed to os.Lchown to leave uid or gid unchanged.
+	unsetOwner = -1
 )
 
 var supportedOnDeleteValues = []string{"", delete, retain, archive}
+
+// fileOwnerFn and chownPathFn are overridden in tests to cover one-sided
+// uid/gid updates without requiring root.
+var (
+	fileOwnerFn = fileOwner
+	chownPathFn = chownPath
+)
 
 func validateOnDeleteValue(onDelete string) error {
 	for _, v := range supportedOnDeleteValues {
@@ -114,8 +124,17 @@ func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, h
 	resp, err := handler(ctx, req)
 	if err != nil {
 		klog.Errorf("GRPC error: %v", err)
-	} else {
-		klog.V(level).Infof("GRPC response: %s", protosanitizer.StripSecrets(resp))
+	} else if klog.V(level).Enabled() {
+		// Only serialize when the level is enabled so that high-frequency
+		// RPCs (Probe, NodeGetCapabilities) don't pay the JSON marshal cost.
+		// Empty responses (e.g. NodePublishVolume/NodeUnpublishVolume success)
+		// carry zero diagnostic value but dominate node logs; demote to V(6).
+		respStr := protosanitizer.StripSecrets(resp).String()
+		respLevel := level
+		if respStr == "{}" {
+			respLevel = klog.Level(6)
+		}
+		klog.V(respLevel).Infof("GRPC response: %s", respStr)
 	}
 	return resp, err
 }
@@ -200,6 +219,60 @@ func chmodIfPermissionMismatch(targetPath string, mode uint32) error {
 		klog.V(2).Infof("skip chmod on targetPath(%s) since mode is already 0%o", targetPath, mode)
 	}
 	return nil
+}
+
+// isDynamicallyProvisioned reports whether volumeContext belongs to a PV
+// created by the CSI provisioner (CreateVolume already applied uid/gid).
+// Only csiProvisionerIdentityKey is used: pvNameKey is also a documented
+// static PV attribute for ${pv.metadata.name} subDir substitution.
+func isDynamicallyProvisioned(volumeContext map[string]string) bool {
+	for k := range volumeContext {
+		if strings.EqualFold(k, csiProvisionerIdentityKey) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseOwnerID parses an optional numeric uid/gid StorageClass parameter.
+// An empty value means "leave this ID unchanged".
+func parseOwnerID(field, value string) (int, error) {
+	if value == "" {
+		return unsetOwner, nil
+	}
+	id, err := strconv.ParseInt(value, 10, 32)
+	if err != nil || id < 0 {
+		return unsetOwner, fmt.Errorf("invalid %s %s", field, value)
+	}
+	return int(id), nil
+}
+
+// chownIfOwnerMismatch only performs chown when uid/gid are set and the
+// current owner does not already match. uid or gid may be unsetOwner (-1) to
+// leave that ID unchanged, matching os.Lchown.
+func chownIfOwnerMismatch(targetPath string, uid, gid int) error {
+	if uid == unsetOwner && gid == unsetOwner {
+		return nil
+	}
+	currentUID, currentGID, err := fileOwnerFn(targetPath)
+	if err != nil {
+		return err
+	}
+	wantUID, wantGID := uid, gid
+	if uid == unsetOwner {
+		wantUID = currentUID
+	}
+	if gid == unsetOwner {
+		wantGID = currentGID
+	}
+	if currentUID == wantUID && currentGID == wantGID {
+		klog.V(2).Infof("skip chown on targetPath(%s) since owner is already %d:%d", targetPath, currentUID, currentGID)
+		return nil
+	}
+	// Pass the original uid/gid (possibly unsetOwner / -1) so os.Lchown
+	// leaves an omitted ID unchanged atomically.
+	klog.V(2).Infof("chown targetPath(%s, current %d:%d) to %d:%d", targetPath, currentUID, currentGID, uid, gid)
+	return chownPathFn(targetPath, uid, gid)
 }
 
 // getServerFromSource if server is IPv6, return [IPv6]
@@ -335,10 +408,31 @@ func getVolumeCapabilityFromSecret(volumeID string, secret map[string]string) *c
 }
 
 func validatePath(path string) error {
-	for _, segment := range strings.Split(path, "/") {
+	// Normalize Windows-style separators so backslash traversal (e.g. "..\..")
+	// is caught regardless of the platform the controller runs on. Use
+	// ReplaceAll rather than filepath.ToSlash, which is a no-op on Linux and so
+	// would miss backslash traversal there. Deliberately avoid filepath.Clean:
+	// it collapses trailing ".." (Clean("a/b/..") == "a"), which would drop the
+	// traversal sequence and weaken detection. See PR #1071 for the earlier
+	// Clean-based attempt that was reverted for exactly this reason.
+	normalized := strings.ReplaceAll(path, "\\", "/")
+	for _, segment := range strings.Split(normalized, "/") {
 		if segment == ".." {
 			return fmt.Errorf("path contains directory traversal sequence")
 		}
 	}
 	return nil
+}
+
+// isPathWithinBase reports whether path resolves to a location inside base,
+// using purely lexical analysis (filepath.Rel). It rejects paths that resolve
+// to base's parent or a sibling (rel == ".." or a "../" prefix) and absolute
+// paths. Callers that need to account for symlinks must resolve them
+// (e.g. filepath.EvalSymlinks) before calling.
+func isPathWithinBase(base, path string) bool {
+	rel, err := filepath.Rel(base, path)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || filepath.IsAbs(rel) {
+		return false
+	}
+	return true
 }

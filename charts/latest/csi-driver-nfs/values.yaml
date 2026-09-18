@@ -11,7 +11,7 @@ image:
         pullPolicy: IfNotPresent
     csiResizer:
         repository: /sig-storage/csi-resizer
-        tag: v2.2.0
+        tag: v2.2.1
         pullPolicy: IfNotPresent
     csiSnapshotter:
         repository: /sig-storage/csi-snapshotter
@@ -80,6 +80,9 @@ controller:
       VolumeAttributesClass: "false"
   useTarCommandInSnapshot: false
   enableSnapshotCompression: true
+  maxSnapshotArchiveSize: 0
+  maxSnapshotFileSize: 0
+  maxSnapshotFiles: 0
   livenessProbe:
     healthPort: 29652
   logLevel: 5
