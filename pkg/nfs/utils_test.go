@@ -17,21 +17,47 @@ limitations under the License.
 package nfs
 
 import (
+	"bytes"
+	"context"
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
+	"google.golang.org/grpc"
+	"k8s.io/klog/v2"
 )
 
 var (
 	invalidEndpoint = "invalid-endpoint"
 	emptyAddr       = "tcp://"
 )
+
+// testOwnerUID/testOwnerGID are uid/gid strings parseOwnerID accepts.
+// On Unix they match the process so chownIfOwnerMismatch is a no-op without
+// root. Using uid for both would try to change the group (often EPERM).
+// On Windows Getuid/Getgid are -1 (invalid); tests that chown must skip.
+func testOwnerUID() string {
+	if uid := os.Getuid(); uid >= 0 {
+		return strconv.Itoa(uid)
+	}
+	return "243"
+}
+
+func testOwnerGID() string {
+	if gid := os.Getgid(); gid >= 0 {
+		return strconv.Itoa(gid)
+	}
+	return "243"
+}
 
 func TestParseEndpoint(t *testing.T) {
 	cases := []struct {
@@ -90,6 +116,149 @@ func TestParseEndpoint(t *testing.T) {
 	}
 }
 
+func TestParseOwnerID(t *testing.T) {
+	tests := []struct {
+		desc        string
+		field       string
+		value       string
+		expectedID  int
+		expectedErr string
+	}{
+		{
+			desc:       "empty value is unset",
+			field:      paramUID,
+			value:      "",
+			expectedID: unsetOwner,
+		},
+		{
+			desc:       "valid uid",
+			field:      paramUID,
+			value:      "243",
+			expectedID: 243,
+		},
+		{
+			desc:       "zero is valid",
+			field:      paramGID,
+			value:      "0",
+			expectedID: 0,
+		},
+		{
+			desc:        "non-numeric",
+			field:       paramUID,
+			value:       "abc",
+			expectedErr: "invalid uid abc",
+		},
+		{
+			desc:        "negative",
+			field:       paramGID,
+			value:       "-1",
+			expectedErr: "invalid gid -1",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			id, err := parseOwnerID(test.field, test.value)
+			if test.expectedErr != "" {
+				if err == nil || err.Error() != test.expectedErr {
+					t.Errorf("expected error %q, got %v", test.expectedErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if id != test.expectedID {
+				t.Errorf("expected id %d, got %d", test.expectedID, id)
+			}
+		})
+	}
+}
+
+func TestChownIfOwnerMismatchInjected(t *testing.T) {
+	origFileOwner, origChownPath := fileOwnerFn, chownPathFn
+	t.Cleanup(func() {
+		fileOwnerFn = origFileOwner
+		chownPathFn = origChownPath
+	})
+
+	t.Run("one-sided uid passes -1 gid through to chown", func(t *testing.T) {
+		var gotUID, gotGID int
+		called := false
+		fileOwnerFn = func(string) (int, int, error) { return 0, 0, nil }
+		chownPathFn = func(_ string, uid, gid int) error {
+			called = true
+			gotUID, gotGID = uid, gid
+			return nil
+		}
+		if err := chownIfOwnerMismatch("/tmp/x", 243, unsetOwner); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !called {
+			t.Fatal("expected chownPath to be called")
+		}
+		if gotUID != 243 || gotGID != unsetOwner {
+			t.Errorf("got %d:%d, want 243:%d", gotUID, gotGID, unsetOwner)
+		}
+	})
+
+	t.Run("matching owner skips chown", func(t *testing.T) {
+		fileOwnerFn = func(string) (int, int, error) { return 243, 243, nil }
+		chownPathFn = func(string, int, int) error {
+			t.Fatal("chownPath should not be called when owner already matches")
+			return nil
+		}
+		if err := chownIfOwnerMismatch("/tmp/x", 243, 243); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("both unset is a no-op", func(t *testing.T) {
+		chownPathFn = func(string, int, int) error {
+			t.Fatal("chownPath should not be called when both IDs are unset")
+			return nil
+		}
+		if err := chownIfOwnerMismatch("/tmp/x", unsetOwner, unsetOwner); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+func TestIsDynamicallyProvisioned(t *testing.T) {
+	tests := []struct {
+		desc     string
+		ctx      map[string]string
+		expected bool
+	}{
+		{
+			desc:     "nil context",
+			expected: false,
+		},
+		{
+			desc:     "static PV attributes",
+			ctx:      map[string]string{"server": "nfs", "share": "/", paramUID: "243"},
+			expected: false,
+		},
+		{
+			desc:     "provisioner identity",
+			ctx:      map[string]string{csiProvisionerIdentityKey: "nfs.csi.k8s.io"},
+			expected: true,
+		},
+		{
+			desc:     "pv name alone is not dynamic (static subDir metadata)",
+			ctx:      map[string]string{pvNameKey: "pvc-123", paramUID: "243"},
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			if got := isDynamicallyProvisioned(test.ctx); got != test.expected {
+				t.Errorf("got %v, want %v", got, test.expected)
+			}
+		})
+	}
+}
+
 func TestGetLogLevel(t *testing.T) {
 	tests := []struct {
 		method string
@@ -122,6 +291,77 @@ func TestGetLogLevel(t *testing.T) {
 		if level != test.level {
 			t.Errorf("returned level: (%v), expected level: (%v)", level, test.level)
 		}
+	}
+}
+
+func TestLogGRPCEmptyResponse(t *testing.T) {
+	buf := new(bytes.Buffer)
+	klog.LogToStderr(false)
+	defer klog.LogToStderr(true)
+	klog.SetOutput(buf)
+	defer klog.SetOutput(io.Discard)
+
+	vFlag := flag.Lookup("v")
+	var originalV string
+	if vFlag != nil {
+		originalV = vFlag.Value.String()
+		defer func() { _ = vFlag.Value.Set(originalV) }()
+	}
+	var vLevel klog.Level
+
+	info := grpc.UnaryServerInfo{FullMethod: "/csi.v1.Node/NodePublishVolume"}
+	req := &csi.NodePublishVolumeRequest{VolumeId: "vol_1"}
+
+	emptyHandler := func(_ context.Context, _ interface{}) (interface{}, error) {
+		return &csi.NodePublishVolumeResponse{}, nil
+	}
+	nonEmptyHandler := func(_ context.Context, _ interface{}) (interface{}, error) {
+		return &csi.NodeGetInfoResponse{NodeId: "node-1"}, nil
+	}
+
+	tests := []struct {
+		name             string
+		v                string
+		handler          grpc.UnaryHandler
+		expectResponse   bool
+		expectedResponse string
+	}{
+		{
+			name:           "empty response is suppressed at V(2)",
+			v:              "2",
+			handler:        emptyHandler,
+			expectResponse: false,
+		},
+		{
+			name:             "empty response is visible at V(6)",
+			v:                "6",
+			handler:          emptyHandler,
+			expectResponse:   true,
+			expectedResponse: "GRPC response: {}",
+		},
+		{
+			name:             "non-empty response is still visible at V(2)",
+			v:                "2",
+			handler:          nonEmptyHandler,
+			expectResponse:   true,
+			expectedResponse: `GRPC response: {"node_id":"node-1"}`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = vLevel.Set(test.v)
+			buf.Reset()
+
+			_, _ = logGRPC(context.Background(), req, &info, test.handler)
+			klog.Flush()
+
+			if test.expectResponse {
+				assert.Contains(t, buf.String(), test.expectedResponse)
+			} else {
+				assert.NotContains(t, buf.String(), "GRPC response:")
+			}
+		})
 	}
 }
 
@@ -575,8 +815,8 @@ func TestValidatePath(t *testing.T) {
 
 		{"triple dots valid", "/home/.../data", false},
 
-		{"windows traversal", "..\\etc\\passwd", false},
-		{"mixed separators", "foo\\..\\bar", false},
+		{"windows traversal", "..\\etc\\passwd", true},
+		{"mixed separators", "foo\\..\\bar", true},
 
 		{"double slash", "foo//bar", false},
 		{"dot traversal", "./../etc", true},
