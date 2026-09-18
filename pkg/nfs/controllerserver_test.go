@@ -86,10 +86,12 @@ func TestMain(m *testing.M) {
 
 func TestCreateVolume(t *testing.T) {
 	cases := []struct {
-		name      string
-		req       *csi.CreateVolumeRequest
-		resp      *csi.CreateVolumeResponse
-		expectErr bool
+		name          string
+		req           *csi.CreateVolumeRequest
+		resp          *csi.CreateVolumeResponse
+		expectErr     bool
+		skipOnWindows bool
+		windowsOnly   bool
 	}{
 		{
 			name: "valid defaults",
@@ -216,10 +218,119 @@ func TestCreateVolume(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		{
+			name: "valid uid and gid",
+			req: &csi.CreateVolumeRequest{
+				Name: testCSIVolume,
+				VolumeCapabilities: []*csi.VolumeCapability{
+					{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+						},
+					},
+				},
+				Parameters: map[string]string{
+					paramServer: testServer,
+					paramShare:  testBaseDir,
+					paramUID:    testOwnerUID(),
+					paramGID:    testOwnerGID(),
+				},
+			},
+			resp: &csi.CreateVolumeResponse{
+				Volume: &csi.Volume{
+					VolumeId: newTestVolumeID,
+					VolumeContext: map[string]string{
+						paramServer: testServer,
+						paramShare:  testBaseDir,
+						paramSubDir: testCSIVolume,
+						paramUID:    testOwnerUID(),
+						paramGID:    testOwnerGID(),
+					},
+				},
+			},
+			skipOnWindows: true,
+		},
+		{
+			name: "[Error] uid/gid not supported on Windows",
+			req: &csi.CreateVolumeRequest{
+				Name: testCSIVolume,
+				VolumeCapabilities: []*csi.VolumeCapability{
+					{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+						},
+					},
+				},
+				Parameters: map[string]string{
+					paramServer: testServer,
+					paramShare:  testBaseDir,
+					paramUID:    "243",
+					paramGID:    "243",
+				},
+			},
+			expectErr:   true,
+			windowsOnly: true,
+		},
+		{
+			name: "[Error] invalid uid",
+			req: &csi.CreateVolumeRequest{
+				Name: testCSIVolume,
+				VolumeCapabilities: []*csi.VolumeCapability{
+					{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+						},
+					},
+				},
+				Parameters: map[string]string{
+					paramServer: testServer,
+					paramShare:  testBaseDir,
+					paramUID:    "abc",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "[Error] invalid gid",
+			req: &csi.CreateVolumeRequest{
+				Name: testCSIVolume,
+				VolumeCapabilities: []*csi.VolumeCapability{
+					{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+						},
+					},
+				},
+				Parameters: map[string]string{
+					paramServer: testServer,
+					paramShare:  testBaseDir,
+					paramGID:    "-1",
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
+			if runtime.GOOS == "windows" && test.skipOnWindows {
+				t.Skip("uid/gid chown is not supported on Windows")
+			}
+			if runtime.GOOS != "windows" && test.windowsOnly {
+				t.Skip("Windows-only")
+			}
 			// Setup
 			cs := initTestController(t)
 			// Run
@@ -616,8 +727,100 @@ func TestGetInternalMountPath(t *testing.T) {
 	}
 
 	for _, test := range cases {
-		path := getInternalMountPath(test.workingMountDir, test.vol)
+		path, err := getInternalMountPath(test.workingMountDir, test.vol)
+		assert.NoError(t, err)
 		assert.Equal(t, path, test.result)
+	}
+}
+
+// TestInternalPathContainment is a defense-in-depth check: even if a traversal
+// sequence slips past the ID/parameter validation, the internal path builders
+// must refuse to resolve a path outside workingMountDir.
+func TestInternalPathContainment(t *testing.T) {
+	cases := []struct {
+		desc      string
+		vol       *nfsVolume
+		expectErr bool
+	}{
+		{
+			desc: "clean subDir/uuid stays within base",
+			vol:  &nfsVolume{subDir: "subdir", uuid: "uuid"},
+		},
+		{
+			desc:      "uuid escapes base",
+			vol:       &nfsVolume{subDir: "subdir", uuid: "../../../etc"},
+			expectErr: true,
+		},
+		{
+			desc:      "subDir escapes base (empty uuid)",
+			vol:       &nfsVolume{subDir: "../../../etc"},
+			expectErr: true,
+		},
+		{
+			desc:      "subDir escapes base via nested traversal",
+			vol:       &nfsVolume{subDir: "a/../../../etc", uuid: "uuid"},
+			expectErr: true,
+		},
+		{
+			// A malformed ID with empty subDir and uuid would collapse the
+			// internal path to workingMountDir itself; deletion must not run
+			// os.RemoveAll on the mounted share root.
+			desc:      "empty subDir and uuid must not resolve to base",
+			vol:       &nfsVolume{},
+			expectErr: true,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.desc, func(t *testing.T) {
+			_, mErr := getInternalMountPath("/tmp", test.vol)
+			_, vErr := getInternalVolumePath("/tmp", test.vol)
+			if test.expectErr {
+				// At least one builder must reject; the escaping component may be
+				// subDir (only caught by getInternalVolumePath) or uuid (caught
+				// by both).
+				assert.True(t, mErr != nil || vErr != nil, "expected containment error")
+			} else {
+				assert.NoError(t, mErr)
+				assert.NoError(t, vErr)
+			}
+		})
+	}
+}
+
+func TestNewNFSSnapshot(t *testing.T) {
+	validVol := &nfsVolume{server: "nfs-server", baseDir: "share", subDir: "subdir", uuid: "vol-uuid"}
+	cases := []struct {
+		desc      string
+		name      string
+		params    map[string]string
+		vol       *nfsVolume
+		expectErr bool
+	}{
+		{
+			desc:   "valid snapshot",
+			name:   "snap-name",
+			params: map[string]string{paramServer: "nfs-server", paramShare: "share"},
+			vol:    validVol,
+		},
+		{
+			desc:      "share with path traversal should be rejected",
+			name:      "snap-name",
+			params:    map[string]string{paramServer: "nfs-server", paramShare: "/exports/../../../etc"},
+			vol:       validVol,
+			expectErr: true,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.desc, func(t *testing.T) {
+			_, err := newNFSSnapshot(test.name, test.params, test.vol)
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
 	}
 }
 
@@ -728,6 +931,22 @@ func TestNewNFSVolume(t *testing.T) {
 			},
 			expectVol: nil,
 			expectErr: fmt.Errorf("invalid share %q: path contains directory traversal sequence", "/exports/../../../etc"),
+		},
+		{
+			// The raw subDir template contains no "..": the traversal only
+			// appears after pvc metadata substitution, so validation must run
+			// against the expanded value.
+			desc: "subDir traversal injected via metadata substitution should be rejected",
+			name: "pv-name",
+			size: 100,
+			params: map[string]string{
+				paramServer: "//nfs-server.default.svc.cluster.local",
+				paramShare:  "share",
+				paramSubDir: fmt.Sprintf("%s/data", pvcNameMetadata),
+				pvcNameKey:  "..",
+			},
+			expectVol: nil,
+			expectErr: fmt.Errorf("invalid subDir %q: path contains directory traversal sequence", "../data"),
 		},
 	}
 
@@ -1393,6 +1612,134 @@ func TestCopyVolumeFromUncompressedSnapshot(t *testing.T) {
 	}
 }
 
+func TestCopyFromSnapshotEnforcesFileSizeLimit(t *testing.T) {
+	srcPath := "/tmp/snapshot-limit-test/snapshot-limit-test"
+	if err := os.MkdirAll(srcPath, 0777); err != nil {
+		t.Fatalf("failed to create snapshot directory: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/snapshot-limit-test") }()
+
+	archivePath := filepath.Join(srcPath, "src-vol.tar")
+	file, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatalf("failed to create tar archive: %v", err)
+	}
+
+	tarWriter := tar.NewWriter(file)
+	body := "test content for snapshot limit"
+	hdr := &tar.Header{
+		Name: "test.txt",
+		Mode: 0644,
+		Size: int64(len(body)),
+	}
+	if err := tarWriter.WriteHeader(hdr); err != nil {
+		t.Fatalf("failed to write tar header: %v", err)
+	}
+	if _, err := tarWriter.Write([]byte(body)); err != nil {
+		t.Fatalf("failed to write tar content: %v", err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatalf("failed to close tar writer: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("failed to close archive: %v", err)
+	}
+
+	cs := initTestControllerWithOptions(&DriverOptions{
+		WorkingMountDir:     "/tmp",
+		MountPermissions:    0777,
+		MaxSnapshotFileSize: 4,
+	})
+
+	req := &csi.CreateVolumeRequest{
+		Name: "restored-volume-limit",
+		VolumeContentSource: &csi.VolumeContentSource{
+			Type: &csi.VolumeContentSource_Snapshot{
+				Snapshot: &csi.VolumeContentSource_SnapshotSource{
+					SnapshotId: "nfs-server.default.svc.cluster.local#share#snapshot-limit-test#snapshot-limit-test#src-vol",
+				},
+			},
+		},
+	}
+
+	dstVol := &nfsVolume{
+		id:      "nfs-server.default.svc.cluster.local#share#subdir#dst-pv-limit",
+		server:  "//nfs-server.default.svc.cluster.local",
+		baseDir: "share",
+		subDir:  "subdir",
+		uuid:    "dst-pv-limit",
+	}
+
+	dstPath := filepath.Join("/tmp", dstVol.uuid, dstVol.subDir)
+	if err := os.MkdirAll(dstPath, 0777); err != nil {
+		t.Fatalf("failed to create destination directory: %v", err)
+	}
+	defer func() { _ = os.RemoveAll("/tmp/dst-pv-limit") }()
+
+	err = cs.copyFromSnapshot(context.TODO(), req, dstVol)
+	if err == nil {
+		t.Fatal("expected copyFromSnapshot to fail when file exceeds max size")
+	}
+	if !strings.Contains(err.Error(), "exceeds max size") {
+		t.Fatalf("expected max size error, got: %v", err)
+	}
+}
+
+func TestUseTarCommandForSnapshot(t *testing.T) {
+	tests := []struct {
+		name                    string
+		useTarCommandInSnapshot bool
+		limits                  TarLimits
+		want                    bool
+	}{
+		{
+			name: "cli disabled, no limits -> false",
+			want: false,
+		},
+		{
+			name:                    "cli enabled, no limits -> true",
+			useTarCommandInSnapshot: true,
+			want:                    true,
+		},
+		{
+			name:                    "cli enabled, archive size limit -> false (limits force Go tar)",
+			useTarCommandInSnapshot: true,
+			limits:                  TarLimits{MaxArchiveSize: 1024},
+			want:                    false,
+		},
+		{
+			name:                    "cli enabled, file size limit -> false",
+			useTarCommandInSnapshot: true,
+			limits:                  TarLimits{MaxFileSize: 512},
+			want:                    false,
+		},
+		{
+			name:                    "cli enabled, file count limit -> false",
+			useTarCommandInSnapshot: true,
+			limits:                  TarLimits{MaxFiles: 8},
+			want:                    false,
+		},
+		{
+			name:   "cli disabled, limits set -> false",
+			limits: TarLimits{MaxFiles: 8},
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cs := initTestControllerWithOptions(&DriverOptions{
+				WorkingMountDir:         "/tmp",
+				UseTarCommandInSnapshot: tt.useTarCommandInSnapshot,
+			})
+			if got := cs.useTarCommandForSnapshot(tt.limits); got != tt.want {
+				t.Fatalf("useTarCommandForSnapshot(%+v) with UseTarCommandInSnapshot=%v = %v, want %v",
+					tt.limits, tt.useTarCommandInSnapshot, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestArchiveNameWithCompression(t *testing.T) {
 	snap := nfsSnapshot{
 		src: "test-volume",
@@ -1618,6 +1965,92 @@ func TestGetNfsVolFromID(t *testing.T) {
 	for _, test := range cases {
 		t.Run(test.name, func(t *testing.T) {
 			result, err := getNfsVolFromID(test.volumeID)
+
+			if test.expectErr && err == nil {
+				t.Errorf("expected error but got nil")
+			}
+			if !test.expectErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(result, test.expected) {
+				t.Errorf("got %+v, expected %+v", result, test.expected)
+			}
+		})
+	}
+}
+
+func TestGetNfsSnapFromID(t *testing.T) {
+	cases := []struct {
+		name       string
+		snapshotID string
+		expected   *nfsSnapshot
+		expectErr  bool
+	}{
+		{
+			name:       "empty snapshot ID",
+			snapshotID: "",
+			expected:   &nfsSnapshot{},
+			expectErr:  true,
+		},
+		{
+			name:       "too few segments",
+			snapshotID: "test-server#base-dir#snap-uuid",
+			expected:   &nfsSnapshot{},
+			expectErr:  true,
+		},
+		{
+			name:       "too many segments",
+			snapshotID: "test-server#base-dir#snap-uuid#archive-path#archive-name#extra",
+			expected:   &nfsSnapshot{},
+			expectErr:  true,
+		},
+		{
+			name:       "valid snapshot ID",
+			snapshotID: "nfs-server.default.svc.cluster.local#share#snapshot-016f#snapshot-016f#pvc-4bcb",
+			expected: &nfsSnapshot{
+				id:      "nfs-server.default.svc.cluster.local#share#snapshot-016f#snapshot-016f#pvc-4bcb",
+				server:  "nfs-server.default.svc.cluster.local",
+				baseDir: "share",
+				uuid:    "snapshot-016f",
+				src:     "pvc-4bcb",
+			},
+			expectErr: false,
+		},
+		{
+			name:       "valid snapshot ID with nested baseDir",
+			snapshotID: "test-server#test/base/dir#snap-uuid#archive-path#archive-name",
+			expected: &nfsSnapshot{
+				id:      "test-server#test/base/dir#snap-uuid#archive-path#archive-name",
+				server:  "test-server",
+				baseDir: "test/base/dir",
+				uuid:    "snap-uuid",
+				src:     "archive-name",
+			},
+			expectErr: false,
+		},
+		{
+			name:       "baseDir with path traversal should be rejected",
+			snapshotID: "test-server#../../etc#snap-uuid#archive-path#archive-name",
+			expected:   nil,
+			expectErr:  true,
+		},
+		{
+			name:       "uuid with path traversal should be rejected",
+			snapshotID: "test-server#base-dir#../../etc/shadow#archive-path#archive-name",
+			expected:   nil,
+			expectErr:  true,
+		},
+		{
+			name:       "src with path traversal should be rejected",
+			snapshotID: "test-server#base-dir#snap-uuid#archive-path#../../etc/passwd",
+			expected:   nil,
+			expectErr:  true,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			result, err := getNfsSnapFromID(test.snapshotID)
 
 			if test.expectErr && err == nil {
 				t.Errorf("expected error but got nil")
