@@ -39,14 +39,8 @@ revision_for_tag() {
   local revision
 
   case "${tag}" in
-    "${upstream_version}-ym")
-      printf '1\n'
-      ;;
-    "${upstream_version}-ym2")
-      printf '2\n'
-      ;;
-    "${upstream_version}-ym."*)
-      revision="${tag#"${upstream_version}-ym."}"
+    "${upstream_version}-yael."*)
+      revision="${tag#"${upstream_version}-yael."}"
       if [[ "${revision}" =~ ^[1-9][0-9]*$ ]]; then
         printf '%d\n' "$((10#${revision}))"
       else
@@ -77,7 +71,7 @@ while IFS= read -r tag; do
     existing_revision="${revision}"
     existing_tag="${tag}"
   fi
-done < <(git tag --list "${upstream_version}-ym*")
+done < <(git tag --list "${upstream_version}-yael.*")
 
 if [[ -n "${existing_tag}" ]]; then
   printf 'tag=%s\n' "${existing_tag}"
@@ -85,5 +79,5 @@ if [[ -n "${existing_tag}" ]]; then
   exit 0
 fi
 
-printf 'tag=%s-ym.%d\n' "${upstream_version}" "$((max_revision + 1))"
+printf 'tag=%s-yael.%d\n' "${upstream_version}" "$((max_revision + 1))"
 printf 'create=true\n'

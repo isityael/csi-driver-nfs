@@ -77,31 +77,29 @@ test_first_release() {
   repo="$(new_repo v4.14.0)"
   commit="$(commit_state "${repo}" initial)"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.14.0-ym.1\ncreate=true' "${actual}" \
+  assert_equal $'tag=v4.14.0-yael.1\ncreate=true' "${actual}" \
     "first fork release starts at revision one"
 }
 
-test_legacy_migration() {
+test_retired_ym_tags_ignored() {
   local repo commit actual
   repo="$(new_repo v4.14.0)"
-  commit="$(commit_state "${repo}" legacy-one)"
-  git -C "${repo}" tag v4.14.0-ym "${commit}"
-  commit="$(commit_state "${repo}" legacy-two)"
-  git -C "${repo}" tag v4.14.0-ym2 "${commit}"
+  commit="$(commit_state "${repo}" retired-series)"
+  git -C "${repo}" tag v4.14.0-ym.52 "${commit}"
   commit="$(commit_state "${repo}" next)"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.14.0-ym.3\ncreate=true' "${actual}" \
-    "legacy fork tags migrate to canonical revision three"
+  assert_equal $'tag=v4.14.0-yael.1\ncreate=true' "${actual}" \
+    "the retired -ym series does not continue into -yael"
 }
 
 test_canonical_increment() {
   local repo commit actual
   repo="$(new_repo v4.14.0)"
   commit="$(commit_state "${repo}" release-three)"
-  git -C "${repo}" tag v4.14.0-ym.3 "${commit}"
+  git -C "${repo}" tag v4.14.0-yael.3 "${commit}"
   commit="$(commit_state "${repo}" next)"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.14.0-ym.4\ncreate=true' "${actual}" \
+  assert_equal $'tag=v4.14.0-yael.4\ncreate=true' "${actual}" \
     "canonical releases increment numerically"
 }
 
@@ -109,10 +107,10 @@ test_upstream_reset() {
   local repo commit actual
   repo="$(new_repo v4.15.0)"
   commit="$(commit_state "${repo}" old-upstream)"
-  git -C "${repo}" tag v4.14.0-ym.9 "${commit}"
+  git -C "${repo}" tag v4.14.0-yael.9 "${commit}"
   commit="$(commit_state "${repo}" new-upstream)"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.15.0-ym.1\ncreate=true' "${actual}" \
+  assert_equal $'tag=v4.15.0-yael.1\ncreate=true' "${actual}" \
     "new upstream versions reset the fork revision"
 }
 
@@ -121,11 +119,11 @@ test_unrelated_tags_ignored() {
   repo="$(new_repo v4.14.0)"
   commit="$(commit_state "${repo}" unrelated)"
   git -C "${repo}" tag v4.14.0-sm4 "${commit}"
-  git -C "${repo}" tag v4.14.0-ym.bad "${commit}"
-  git -C "${repo}" tag v4.13.0-ym.99 "${commit}"
+  git -C "${repo}" tag v4.14.0-yael.bad "${commit}"
+  git -C "${repo}" tag v4.13.0-yael.99 "${commit}"
   commit="$(commit_state "${repo}" next)"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.14.0-ym.1\ncreate=true' "${actual}" \
+  assert_equal $'tag=v4.14.0-yael.1\ncreate=true' "${actual}" \
     "unrelated and malformed tags do not affect releases"
 }
 
@@ -133,9 +131,9 @@ test_already_released_commit() {
   local repo commit actual
   repo="$(new_repo v4.14.0)"
   commit="$(commit_state "${repo}" released)"
-  git -C "${repo}" tag v4.14.0-ym.7 "${commit}"
+  git -C "${repo}" tag v4.14.0-yael.7 "${commit}"
   actual="$(resolve_tag "${repo}" "${commit}")"
-  assert_equal $'tag=v4.14.0-ym.7\ncreate=false' "${actual}" \
+  assert_equal $'tag=v4.14.0-yael.7\ncreate=false' "${actual}" \
     "an already released commit is idempotent"
 }
 
@@ -181,12 +179,12 @@ EOF
     FORGEJO_API_URL=https://git.m0sh1.cc/api/v1 \
     FORGEJO_REPOSITORY=isityael/csi-driver-nfs \
     FORGEJO_TOKEN=test-token \
-    "${TAG_CREATOR}" v4.14.0-ym.3 "${commit}"
+    "${TAG_CREATOR}" v4.14.0-yael.3 "${commit}"
 
   grep -Fx -- '--request' "${args_file}" >/dev/null
   grep -Fx -- 'POST' "${args_file}" >/dev/null
   grep -Fx -- 'Authorization: token test-token' "${args_file}" >/dev/null
-  grep -Fx -- '{"tag_name":"v4.14.0-ym.3","target":"0123456789abcdef0123456789abcdef01234567"}' \
+  grep -Fx -- '{"tag_name":"v4.14.0-yael.3","target":"0123456789abcdef0123456789abcdef01234567"}' \
     "${args_file}" >/dev/null
   grep -Fx -- 'https://git.m0sh1.cc/api/v1/repos/isityael/csi-driver-nfs/tags' \
     "${args_file}" >/dev/null
@@ -198,7 +196,7 @@ EOF
     FORGEJO_API_URL=https://git.m0sh1.cc/api/v1 \
     FORGEJO_REPOSITORY=isityael/csi-driver-nfs \
     FORGEJO_TOKEN=test-token \
-    "${TAG_CREATOR}" v4.14.0-ym.3 "${commit}" >/dev/null 2>&1; then
+    "${TAG_CREATOR}" v4.14.0-yael.3 "${commit}" >/dev/null 2>&1; then
     printf 'not ok - immutable tag conflicts must fail\n' >&2
     exit 1
   fi
@@ -266,7 +264,7 @@ test_dhi_platform_contract() {
 }
 
 test_first_release
-test_legacy_migration
+test_retired_ym_tags_ignored
 test_canonical_increment
 test_upstream_reset
 test_unrelated_tags_ignored

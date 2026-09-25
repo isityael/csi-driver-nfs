@@ -17,6 +17,8 @@ on:
       - .forgejo/workflows/release-tag.yaml
       - hack/next-fork-tag.sh
       - hack/create-forgejo-tag.sh
+      - hack/next-fork-tag.sh
+      - hack/create-forgejo-tag.sh
   workflow_dispatch:
 
 jobs:
