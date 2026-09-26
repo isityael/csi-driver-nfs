@@ -4,17 +4,6 @@ when:
   - event: [push, pull_request]
     branch: isityael/dhi-hardening
 
-# The workspace is on NFS, where writing vendor/ one file at a time made
-# `git reset --hard` take ~70s of a ~100s lint run. Parallel checkout overlaps
-# those writes.
-clone:
-  - name: clone
-    image: woodpeckerci/plugin-git:2.10.1@sha256:550075c844fcec0af41d9d28f9860aa5d8c43e1e9419be4b9266dc02c2f29804
-    environment:
-      GIT_CONFIG_COUNT: "1"
-      GIT_CONFIG_KEY_0: checkout.workers
-      GIT_CONFIG_VALUE_0: "16"
-
 steps:
   - name: chart-version-guard
     image: ghcr.io/isityael/chart-version-guard:main@sha256:c6698e41e94a60f922aaa8c48ce8604037cae23672e2063ff0ead4e910596156
