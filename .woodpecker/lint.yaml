@@ -17,7 +17,7 @@ clone:
 
 steps:
   - name: chart-version-guard
-    image: ghcr.io/isityael/chart-version-guard:main@sha256:780e286f8bb33fd59234358c34fe16ccc2cb374e5ff82b1456e3db254450d9da
+    image: ghcr.io/isityael/chart-version-guard:main@sha256:c6698e41e94a60f922aaa8c48ce8604037cae23672e2063ff0ead4e910596156
     commands:
       # charts/ holds upstream's chart copies (latest stays v0.0.0, released
       # versions are edited in place); the deployed chart lives in helm-charts.
