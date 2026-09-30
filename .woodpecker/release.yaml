@@ -16,7 +16,7 @@ steps:
       build_args:
         IMAGE_VERSION: "${CI_COMMIT_TAG}"
         GIT_COMMIT: "${CI_COMMIT_SHA}"
-        GO_VERSION: "1.27.1@sha256:3680233e3204827fbdc66088528ae6d4b3d034f51d03a99d454f6de034888244"
+        GO_VERSION: "1.27.1@sha256:e0174e51e81218523251d85d248a90d24c3d5e81543b4f07a5d66229397db190"
       platforms:
         - linux/amd64
       tags:
@@ -41,7 +41,7 @@ steps:
 
   - name: trivy-scan
     failure: ignore
-    image: dhi.io/trivy:0.74.0-alpine3.23-dev@sha256:d03c16fc7cd77aa5ea0a0a028f4ed89352f307304d79255460ed909537701c85
+    image: dhi.io/trivy:0.74.0-alpine3.23-dev@sha256:62dd947d1e4c019edb21c39df7bb1a90d6a693b552c744a68126fc789fb8b21c
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
@@ -53,7 +53,7 @@ steps:
       - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
 
   - name: cosign-sign
-    image: dhi.io/cosign:3.1.3-alpine3.23-dev@sha256:f37dcc47f63eecdd9689d82c1f89190c247f66ccb8bc98d2b3a6f5675852aa10
+    image: dhi.io/cosign:3.1.3-alpine3.23-dev@sha256:b338f799b061a536fc5d8554c628f6e1890f1c8e592891b01e1292157b445e4e
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
