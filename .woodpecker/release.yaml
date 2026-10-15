@@ -41,7 +41,7 @@ steps:
 
   - name: trivy-scan
     failure: ignore
-    image: dhi.io/trivy:0.74.0-alpine3.23-dev@sha256:17281ad0f64561a330229805e31d8df7757048024400fddd340fb6b0d5509d93
+    image: dhi.io/trivy:0.74.0-alpine3.23-dev@sha256:e6e396ea119158e704b7c976f61000a09e67e9a40456a4cabd4b488f47e30038
     environment:
       IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
