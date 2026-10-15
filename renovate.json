@@ -6,7 +6,9 @@
     ":preserveSemverRanges"
   ],
   "pinDigests": false,
-  "postUpdateOptions": ["gomodTidy"],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "ignorePaths": [
     "charts/*/*.tgz",
     "vendor/**"
@@ -29,7 +31,9 @@
     {
       "customType": "regex",
       "description": "Track the Go builder image passed through the Woodpecker build argument",
-      "managerFilePatterns": ["/^\\.woodpecker/release\\.yaml$/"],
+      "managerFilePatterns": [
+        "/^\\.woodpecker/release\\.yaml$/"
+      ],
       "matchStrings": [
         "GO_VERSION: \"(?<currentValue>[^\"]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
       ],
@@ -46,48 +50,109 @@
   "packageRules": [
     {
       "description": "Patch-bump the active Helm chart version when Renovate changes chart dependencies or values",
-      "matchManagers": ["helmv3", "helm-values"],
+      "matchManagers": [
+        "helmv3",
+        "helm-values"
+      ],
       "matchFileNames": [
         "charts/latest/csi-driver-nfs/Chart.yaml",
         "charts/latest/csi-driver-nfs/values.yaml"
       ],
-      "addLabels": ["helm"],
+      "addLabels": [
+        "helm"
+      ],
       "bumpVersions": [
         {
           "name": "Patch-bump active CSI NFS Helm Chart.yaml",
-          "filePatterns": ["charts/latest/csi-driver-nfs/Chart.yaml"],
-          "matchStrings": ["version:\\s*\"?v?(?<version>\\d+\\.\\d+\\.\\d+)\"?"],
+          "filePatterns": [
+            "charts/latest/csi-driver-nfs/Chart.yaml"
+          ],
+          "matchStrings": [
+            "version:\\s*\"?v?(?<version>\\d+\\.\\d+\\.\\d+)\"?"
+          ],
           "bumpType": "patch"
         }
       ]
     },
     {
-      "matchManagers": ["gomod"],
-      "addLabels": ["go"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "addLabels": [
+        "go"
+      ]
     },
     {
-      "matchManagers": ["dockerfile"],
-      "addLabels": ["docker"]
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "addLabels": [
+        "docker"
+      ]
     },
     {
-      "matchManagers": ["github-actions"],
-      "addLabels": ["ci"]
+      "matchManagers": [
+        "github-actions"
+      ],
+      "addLabels": [
+        "ci"
+      ]
     },
     {
       "description": "Group all GitHub Actions into a single PR",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "groupName": "github actions"
     },
     {
       "description": "Auto-merge patch and minor Go module updates",
-      "matchManagers": ["gomod"],
-      "matchUpdateTypes": ["patch", "minor"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor"
+      ],
       "automerge": true
     },
     {
       "description": "Auto-merge GitHub Actions updates",
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "automerge": true
+    },
+    {
+      "description": "Kubernetes 0.37.1 uses structured-merge-diff/v6; newer kube-openapi requires v7 and fails compilation. Revisit with a compatible Kubernetes module update.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "k8s.io/kube-openapi"
+      ],
+      "allowedVersions": "<=v0.0.0-20260821135717-be32def86098"
+    },
+    {
+      "description": "kustomize 0.21.3 pulls kube-openapi using structured-merge-diff/v7, incompatible with Kubernetes 0.37.1. Revisit together with the Kubernetes module update.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "sigs.k8s.io/kustomize/api",
+        "sigs.k8s.io/kustomize/kyaml"
+      ],
+      "allowedVersions": "<=0.21.2"
+    },
+    {
+      "description": "cel-go 0.32.0 changes its module path to cel.dev/cel-go; keep the github.com/google/cel-go module on its last compatible release until consumers migrate.",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/google/cel-go"
+      ],
+      "allowedVersions": "<0.32.0"
     }
   ]
 }
