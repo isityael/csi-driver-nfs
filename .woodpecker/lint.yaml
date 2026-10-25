@@ -6,7 +6,7 @@ when:
 
 steps:
   - name: chart-version-guard
-    image: ghcr.io/isityael/chart-version-guard:main@sha256:ff451ae6508d0163b185d39c7ac030ca681feec02a4da5dd909e8efc25d73a60
+    image: ghcr.io/isityael/chart-version-guard:main@sha256:8a06859ba7581b4c3ffc3c3a2b9905e098e86c4b4f0ed365f15c225e62593da1
     commands:
       # charts/ holds upstream's chart copies (latest stays v0.0.0, released
       # versions are edited in place); the deployed chart lives in helm-charts.
