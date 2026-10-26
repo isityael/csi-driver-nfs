@@ -10,8 +10,8 @@ steps:
     image: woodpeckerci/plugin-docker-buildx:6.1.2@sha256:d26b69cbe748b8a219c707e7889d5ffb3f9214bc3c480c30fe857ff85954267c
     privileged: true
     settings:
-      registry: ghcr.io
-      repo: ghcr.io/isityael/nfsplugin
+      registry: git.m0sh1.cc
+      repo: git.m0sh1.cc/isityael/nfsplugin
       dockerfile: Dockerfile.release
       build_args:
         IMAGE_VERSION: "${CI_COMMIT_TAG}"
@@ -24,11 +24,11 @@ steps:
         - "${CI_COMMIT_TAG}"
         - latest
       logins:
-        - registry: ghcr.io
+        - registry: git.m0sh1.cc
           username:
-            from_secret: github_username
+            from_secret: forgejo_public_package_username
           password:
-            from_secret: github_token
+            from_secret: forgejo_public_package_token
         - registry: dhi.io
           username:
             from_secret: dhi_username
@@ -36,18 +36,18 @@ steps:
             from_secret: dhi_password
       provenance: mode=max
       buildkit_driveropt: network=host
-      cache_from: 'type=registry\,ref=ghcr.io/isityael/nfsplugin:buildcache'
-      cache_to: "type=registry,ref=ghcr.io/isityael/nfsplugin:buildcache,mode=max,ignore-error=true"
+      cache_from: 'type=registry\,ref=git.m0sh1.cc/isityael/nfsplugin:buildcache'
+      cache_to: "type=registry,ref=git.m0sh1.cc/isityael/nfsplugin:buildcache,mode=max,ignore-error=true"
 
   - name: trivy-scan
     failure: ignore
     image: dhi.io/trivy:0.74.0-alpine3.23-dev@sha256:840c5e896091d1ff1dc900be5fa69ffb2082a8c4959ac2e48429a3b702c7c70b
     environment:
-      IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
+      IMAGE_REF: "git.m0sh1.cc/isityael/nfsplugin:${CI_COMMIT_TAG}"
       TRIVY_USERNAME:
-        from_secret: github_username
+        from_secret: forgejo_public_package_username
       TRIVY_PASSWORD:
-        from_secret: github_token
+        from_secret: forgejo_public_package_token
     commands:
       - trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed $${IMAGE_REF}
       - trivy image --exit-code 0 --severity HIGH --ignore-unfixed $${IMAGE_REF}
@@ -55,18 +55,18 @@ steps:
   - name: cosign-sign
     image: dhi.io/cosign:3.1.3-alpine3.23-dev@sha256:068e814d2070c6c7e6106357f7c9ce585027ba122a7c83beee9bfbf9250ccf73
     environment:
-      IMAGE_REF: "ghcr.io/isityael/nfsplugin:${CI_COMMIT_TAG}"
+      IMAGE_REF: "git.m0sh1.cc/isityael/nfsplugin:${CI_COMMIT_TAG}"
       COSIGN_EXPERIMENTAL: "1"
       COSIGN_KEY:
         from_secret: cosign_key
       COSIGN_PASSWORD:
         from_secret: cosign_password
       REGISTRY_USERNAME:
-        from_secret: github_username
+        from_secret: forgejo_public_package_username
       REGISTRY_PASSWORD:
-        from_secret: github_token
+        from_secret: forgejo_public_package_token
     commands:
       - echo "$COSIGN_KEY" > /tmp/cosign.key
-      - cosign login ghcr.io -u "$REGISTRY_USERNAME" -p "$REGISTRY_PASSWORD"
+      - cosign login git.m0sh1.cc -u "$REGISTRY_USERNAME" -p "$REGISTRY_PASSWORD"
       - cosign sign --key /tmp/cosign.key --yes --registry-referrers-mode=oci-1-1 $${IMAGE_REF}
       - rm -f /tmp/cosign.key
