@@ -43,7 +43,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: csi-provisioner
-          image: registry.k8s.io/sig-storage/csi-provisioner:v6.3.0
+          image: dhi.io/csi-provisioner:6.3.0-debian13-dev
           args:
             - "-v=2"
             - "--csi-address=$(ADDRESS)"
@@ -74,7 +74,7 @@ spec:
               drop:
                 - ALL
         - name: csi-resizer
-          image: registry.k8s.io/sig-storage/csi-resizer:v2.2.1
+          image: dhi.io/csi-resizer:2.2.1-debian13-dev
           args:
             - "-csi-address=$(ADDRESS)"
             - "-v=2"
@@ -103,7 +103,7 @@ spec:
               drop:
                 - ALL
         - name: csi-snapshotter
-          image: registry.k8s.io/sig-storage/csi-snapshotter:v8.6.0
+          image: dhi.io/csi-snapshotter:8.6.0-debian13-dev
           args:
             - "--v=2"
             - "--csi-address=$(ADDRESS)"
@@ -133,7 +133,7 @@ spec:
               drop:
                 - ALL
         - name: liveness-probe
-          image: registry.k8s.io/sig-storage/livenessprobe:v2.19.0
+          image: dhi.io/livenessprobe:2.19.0-debian13-dev
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s

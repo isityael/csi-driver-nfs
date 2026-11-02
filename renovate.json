@@ -35,7 +35,7 @@
         "/^\\.woodpecker/release\\.yaml$/"
       ],
       "matchStrings": [
-        "GO_VERSION: \"(?<currentValue>[^\"]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
+        "GO_VERSION: \"(?<currentValue>[^\"]+)\""
       ],
       "depNameTemplate": "golang",
       "datasourceTemplate": "docker",
@@ -153,6 +153,27 @@
         "github.com/google/cel-go"
       ],
       "allowedVersions": "<0.32.0"
+    },
+    {
+      "description": "Use container version tags only.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "pinDigests": false
+    },
+    {
+      "description": "Do not create container digest pins or digest refreshes.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
+      "enabled": false
     }
+  ],
+  "ignorePresets": [
+    "docker:pinDigests"
   ]
 }
