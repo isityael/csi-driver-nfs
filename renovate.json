@@ -35,7 +35,7 @@
         "/^\\.woodpecker/release\\.yaml$/"
       ],
       "matchStrings": [
-        "GO_VERSION: \"(?<currentValue>[^\"]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
+        "GO_VERSION: \"(?<currentValue>[^\"]+)\""
       ],
       "depNameTemplate": "golang",
       "datasourceTemplate": "docker",
