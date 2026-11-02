@@ -1,9 +1,9 @@
 # Multi-stage release build for isityael/nfsplugin.
 # Cross-compilation: builder runs on BUILDPLATFORM (native speed),
 # Go cross-compiles to TARGETARCH. Only the runtime stage uses QEMU.
-ARG GO_VERSION=1.27.3
+ARG GO_VERSION=1.27.3-debian13-dev
 
-FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS builder
+FROM --platform=$BUILDPLATFORM dhi.io/golang:${GO_VERSION} AS builder
 ARG TARGETOS=linux
 ARG TARGETARCH
 ARG IMAGE_VERSION=dev
