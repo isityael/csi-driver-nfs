@@ -153,6 +153,21 @@
         "github.com/google/cel-go"
       ],
       "allowedVersions": "<0.32.0"
+    },
+    {
+      "description": "Use container version tags without digest pins or refreshes.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
+      "pinDigests": false,
+      "enabled": false
     }
+  ],
+  "ignorePresets": [
+    "docker:pinDigests"
   ]
 }
