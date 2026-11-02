@@ -52,7 +52,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: snapshot-controller
-          image: dhi.io/snapshot-controller:8.5.0-debian13-dev
+          image: dhi.io/snapshot-controller:8.7.0-debian13-dev
           args:
             - "--v=2"
             - "--leader-election=true"

@@ -30,7 +30,7 @@ spec:
         - operator: "Exists"
       containers:
         - name: liveness-probe
-          image: dhi.io/livenessprobe:2.19.0-debian13-dev
+          image: dhi.io/livenessprobe:2.20.0-debian13-dev
           args:
             - --csi-address=/csi/csi.sock
             - --probe-timeout=3s
@@ -50,7 +50,7 @@ spec:
               drop:
                 - ALL
         - name: node-driver-registrar
-          image: dhi.io/csi-node-driver-registrar:2.17.0-debian13-dev
+          image: dhi.io/csi-node-driver-registrar:2.18.0-debian13-dev
           args:
             - --v=2
             - --csi-address=/csi/csi.sock
