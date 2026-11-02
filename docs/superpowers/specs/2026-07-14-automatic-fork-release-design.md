@@ -4,7 +4,7 @@
 
 Automatically create a new fork release after the Linux build succeeds on the
 default `isityael/dhi-hardening` branch, publish the corresponding NFS CSI image
-to `ghcr.io/isityael/nfsplugin`, and allow ArgoCD Image Updater to select and
+to `git.m0sh1.cc/isityael/nfsplugin`, and allow ArgoCD Image Updater to select and
 deploy the new immutable version through GitOps.
 
 ## Release version contract
@@ -59,7 +59,7 @@ Trivy scan, and Cosign signature. It publishes the canonical Git tag as an
 immutable image tag, for example:
 
 ```text
-ghcr.io/isityael/nfsplugin:v4.14.0-ym.3
+git.m0sh1.cc/isityael/nfsplugin:v4.14.0-ym.3
 ```
 
 If publication fails, ArgoCD Image Updater cannot select the missing image. The
@@ -69,7 +69,7 @@ existing release pipeline can be retried without minting another Git tag.
 
 The ArgoCD Application manifest at
 `/Users/yaelmeya/git/m0sh1.cc/infra/argocd/apps/cluster/nfs-csi.yaml` is annotated
-for `ghcr.io/isityael/nfsplugin`. The application is also enrolled in the
+for `git.m0sh1.cc/isityael/nfsplugin`. The application is also enrolled in the
 `ghcr-apps` ImageUpdater custom resource at
 `/Users/yaelmeya/git/m0sh1.cc/infra/apps/cluster/argocd-image-updater/templates/image-updater-ghcr-apps.yaml`,
 which is the active image inventory for this installation. Image discovery is
