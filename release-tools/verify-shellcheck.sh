@@ -29,7 +29,7 @@ ROOT="${1:-${TOOLS}/..}"
 # use the official docker image instead. keep this in sync with SHELLCHECK_IMAGE
 SHELLCHECK_VERSION="0.6.0"
 # upstream shellcheck latest stable image as of January 10th, 2019
-SHELLCHECK_IMAGE="koalaman/shellcheck-alpine:v0.6.0@sha256:7d4d712a2686da99d37580b4e2f45eb658b74e4b01caf67c1099adc294b96b52"
+SHELLCHECK_IMAGE="koalaman/shellcheck-alpine:v0.6.0"
 
 # fixed name for the shellcheck docker container so we can reliably clean it up
 SHELLCHECK_CONTAINER="k8s-shellcheck"
