@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.44.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/goleak v1.3.0
-	golang.org/x/mod v0.42.0
+	golang.org/x/mod v0.43.0
 	golang.org/x/sys v0.50.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
