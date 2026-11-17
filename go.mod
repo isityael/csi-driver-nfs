@@ -3,7 +3,7 @@ module github.com/isityael/csi-driver-nfs
 go 1.27.2
 
 require (
-	github.com/container-storage-interface/spec v1.13.0
+	github.com/container-storage-interface/spec v1.14.0
 	github.com/google/uuid v1.6.0
 	github.com/kubernetes-csi/csi-lib-utils v0.25.0
 	github.com/onsi/ginkgo/v2 v2.34.0
